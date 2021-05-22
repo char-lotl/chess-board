@@ -1,5 +1,5 @@
-//import {makeBoard} from './makeBoard.js';
-// START makeBoard.js
+export { makeBoard };
+
 const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
 const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
@@ -36,25 +36,3 @@ function makeBoard() {
 	
 	return b;
 }
-// END makeBoard.js
-
-function getSquare(rankIndex, fileIndex) {
-	return document.getElementById('square_' + rankIndex + fileIndex);
-}
-
-function addPiecetoSquare(pieceColor, pieceType, square) {
-	square.setAttribute('piececolor', pieceColor);
-	square.setAttribute('piecetype', pieceType);
-}
-
-function addPieceToRankFile(pieceColor, pieceType, rankIndex, fileIndex) {
-	addPiecetoSquare(pieceColor, pieceType, getSquare(rankIndex, fileIndex));
-}
-
-const app = document.getElementById('app');
-
-const b = makeBoard();
-app.appendChild(b);
-
-addPieceToRankFile('white', 'knight', 3, 3);
-addPieceToRankFile('black', 'rook', 2, 5);

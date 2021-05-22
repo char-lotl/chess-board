@@ -4,101 +4,21 @@
 <html>
 	<head>
 		<meta charset='utf-8'>
+		<!-- forcibly prevent caching if github pages CDN is being a pain
+		<meta http-equiv='cache-control' content='no-cache'>
+		<meta http-equiv='expires' content='0'>
+		<meta http-equiv='pragma' content='no-cache'>
+		-->
 		<link href='./css/style.css' rel='stylesheet'>
 		<title>Char's JS Chess Board</title>
 	</head>
 	<body>
-		<div class='app'>
+		<div class='app' id='app'>
 			<div id='sidebar-right'>
 				<h1></h1>
-			</div>
-			<div class='board'>
-				<div class='row'>
-					<div class='square light' piece-color='white' piece-type='pawn'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-				</div>
-				<div class='row'>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-				</div>
-				<div class='row'>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark' piece-color='white' piece-type='rook'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-				</div>
-				<div class='row'>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-				</div>
-				<div class='row'>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-				</div>
-				<div class='row'>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-				</div>
-				<div class='row'>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-				</div>
-				<div class='row'>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-					<div class='square dark'></div>
-					<div class='square light'></div>
-				</div>
 			</div>
 		</div>
 		<script type='application/javascript' src='./scripts/chess.js'></script>
 	</body>
-	
-	
-	
 	
 </html>
