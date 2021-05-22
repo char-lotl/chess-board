@@ -68,51 +68,51 @@ body {
 }
 
 [piececolor='white'][piecetype='pawn'] {
-	background-image: url("../resources/piece/wp.png");
+	background-image: url("../resources/piece/wp.svg");
 }
 
 [piececolor='white'][piecetype='knight'] {
-	background-image: url("../resources/piece/wn.png");
+	background-image: url("../resources/piece/wn.svg");
 }
 
 [piececolor='white'][piecetype='bishop'] {
-	background-image: url("../resources/piece/wb.png");
+	background-image: url("../resources/piece/wb.svg");
 }
 
 [piececolor='white'][piecetype='rook'] {
-	background-image: url("../resources/piece/wr.png");
+	background-image: url("../resources/piece/wr.svg");
 }
 
 [piececolor='white'][piecetype='queen'] {
-	background-image: url("../resources/piece/wq.png");
+	background-image: url("../resources/piece/wq.svg");
 }
 
 [piececolor='white'][piecetype='king'] {
-	background-image: url("../resources/piece/wk.png");
+	background-image: url("../resources/piece/wk.svg");
 }
 
 [piececolor='black'][piecetype='pawn'] {
-	background-image: url("../resources/piece/bp.png");
+	background-image: url("../resources/piece/bp.svg");
 }
 
 [piececolor='black'][piecetype='knight'] {
-	background-image: url("../resources/piece/bn.png");
+	background-image: url("../resources/piece/bn.svg");
 }
 
 [piececolor='black'][piecetype='bishop'] {
-	background-image: url("../resources/piece/bb.png");
+	background-image: url("../resources/piece/bb.svg");
 }
 
 [piececolor='black'][piecetype='rook'] {
-	background-image: url("../resources/piece/br.png");
+	background-image: url("../resources/piece/br.svg");
 }
 
 [piececolor='black'][piecetype='queen'] {
-	background-image: url("../resources/piece/bq.png");
+	background-image: url("../resources/piece/bq.svg");
 }
 
 [piececolor='black'][piecetype='king'] {
-	background-image: url("../resources/piece/bk.png");
+	background-image: url("../resources/piece/bk.svg");
 }
 
 #sidebar-right {
