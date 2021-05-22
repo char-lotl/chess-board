@@ -7,6 +7,16 @@ body {
 	background-color: aliceblue;
 }
 
+p {
+	background-color: #B0F0B0;
+	width: 40%;
+	padding: 5%;
+	margin: 10% auto;
+	border: 1%;
+	border-radius: 1vw;
+	font-size: 1.5vw;
+}
+
 
 .app {
 	
@@ -38,7 +48,7 @@ body {
 }
 
 .square.light[selected] {
-	background-color: #E0E0D0;
+	background-color: #E4E4D4;
 }
 
 .square.dark {
