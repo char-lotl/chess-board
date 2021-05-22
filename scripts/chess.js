@@ -110,9 +110,24 @@ function resetBoard() {
 	}
 }
 
-const app = document.getElementById('app');
+function deselectAll() {
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			let s = getSquare(i, j);
+			if (s.hasAttribute('selected')) s.removeAttribute('selected');
+		}
+	}
+}
 
+const app = document.getElementById('app');
 const b = makeBoard();
 app.appendChild(b);
+
+const buttonReset = document.getElementById('button_reset');
+buttonReset.addEventListener('click', resetBoard);
+
+const buttonDeselect = document.getElementById('button_deselect');
+buttonDeselect.addEventListener('click', deselectAll);
+
 
 resetBoard();

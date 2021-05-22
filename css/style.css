@@ -7,7 +7,7 @@ body {
 	background-color: aliceblue;
 }
 
-p {
+#sidebar-right p {
 	background-color: #B0F0B0;
 	width: 40%;
 	padding: 5%;
@@ -15,8 +15,12 @@ p {
 	border: 1%;
 	border-radius: 1vw;
 	font-size: 1.5vw;
+	
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
-
 
 .app {
 	
