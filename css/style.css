@@ -1,0 +1,31 @@
+.app {
+	
+}
+
+.board {
+	margin: auto;
+	width: 40%;
+	margin-top: 10%;
+}
+
+.row {
+	//float: left;
+	//clear: left;
+}
+
+.square {
+	width: 12.5%;
+	padding-bottom: 12.5%;
+	display: inline-block;
+	margin: 0;
+	float: left;
+	clear: none;
+}
+
+.square.light {
+	background-color: #D0D0D0;
+}
+
+.square.dark {
+	background-color: #202020;
+}
