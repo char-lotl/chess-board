@@ -1,3 +1,13 @@
+* {
+	font-family: 'Trebuchet MS';
+	text-align: center;
+}
+
+body {
+	background-color: aliceblue;
+}
+
+
 .app {
 	
 }
@@ -9,8 +19,9 @@
 }
 
 .row {
-	//float: left;
-	//clear: left;
+	float: left;
+	width: 100%;
+	clear: left;
 }
 
 .square {
@@ -27,5 +38,39 @@
 }
 
 .square.dark {
-	background-color: #202020;
+	background-color: #909080;
+}
+
+[piece-type] {
+	background-size: 100%;
+}
+
+[piece-color='white'][piece-type='pawn'] {
+	background-image: url("../resources/piece/wp.png");
+}
+
+[piece-color='white'][piece-type='knight'] {
+	background-image: url("../resources/piece/wn.png");
+}
+
+[piece-color='white'][piece-type='bishop'] {
+	background-image: url("../resources/piece/wb.png");
+}
+
+[piece-color='white'][piece-type='rook'] {
+	background-image: url("../resources/piece/wr.png");
+}
+
+[piece-color='white'][piece-type='queen'] {
+	background-image: url("../resources/piece/wq.png");
+}
+
+[piece-color='white'][piece-type='king'] {
+	background-image: url("../resources/piece/wk.png");
+}
+
+#sidebar-right {
+	position: absolute;
+	width: 30%;
+	right: 0;
 }
