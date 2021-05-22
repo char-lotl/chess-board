@@ -3,23 +3,59 @@
 const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
 const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
-const toggleSelected = function(clickEvent) {
-	const clickedSquare = clickEvent.currentTarget;
-	if (clickedSquare.hasAttribute('selected')) {
-		clickedSquare.removeAttribute('selected');
-	} else {
-		clickedSquare.setAttribute('selected', '');
-	}
-}
-
 function makeSquare(rankIndex, fileLabel, fileIndex) {
 	let s = document.createElement('div');
 	s.id = 'square_' + rankIndex + fileIndex;
 	s.className = 'square ' + (((fileIndex + rankIndex) % 2 === 1) ? 'dark' : 'light');
+	s.rank = rankIndex;
+	s.file = fileIndex;
 	
-	s.addEventListener('click', toggleSelected);
+	//s.addEventListener('click', toggleSelected);
 	
-	return s;
+	return {
+		_dom: s,
+		_model: {
+			rank: rankIndex,
+			file: fileIndex,
+			selected: false,
+			highlighted: false,
+			checked: false,
+			containsPiece: false,
+			pieceColor: '',
+			pieceType: ''
+		},
+		addPiece(color, type) {
+			this._model.pieceColor = color;
+			this._model.pieceType = type;
+			this._dom.setAttribute('piececolor', color);
+			this._dom.setAttribute('piecetype', type);
+		},
+		removePiece() {
+			// since model and DOM are synced, we can use a query on model
+			// to avoid a DOM query
+			if (this._model.pieceColor) {
+				this._model.pieceColor = '';
+				this._model.pieceType = '';
+				this._dom.removeAttribute('piececolor');
+				this._dom.removeAttribute('piecetype');
+			}
+		},
+		deselect() {
+			if (this._model.selected) {
+				this._model.selected = false;
+				this._dom.removeAttribute('selected');
+			}
+		},
+		select() {
+			if (!(this._model.selected)) {
+				this._model.selected = true;
+				this._dom.setAttribute('selected', '');
+			}
+		},
+		toggleSelected() {
+			// fill this in in a sec
+		}
+	};
 }
 
 function makeRank(rankIndex) {
@@ -29,53 +65,94 @@ function makeRank(rankIndex) {
 	let rankSquares = files.map((fileLabel, fileIndex) => {
 		return makeSquare(rankIndex, fileLabel, fileIndex);
 	});
-	rankSquares.forEach(e => {
-		r.appendChild(e);
-	});
-	return r;
+	rankObject = {
+		_dom: r,
+		_model: {
+			rank: rankIndex
+		}
+	};
+	for (i = 0; i < 8; i++) {
+		r.appendChild(rankSquares[i]._dom);
+		rankObject[i] = rankSquares[i];
+	}
+	return rankObject;
 }
 
 function makeBoard() {
 	let b = document.createElement('div');
 	b.className = 'board';
 	b.id = 'board';
+	boardObject = {
+		_dom: b,
+		_model: {
+			selectedSquare: null,
+			highlightedSquares: []
+		},
+		get selectedSquare() {
+			return this._model.selectedSquare;
+		},
+		set selectedSquare(s) {
+			this._model.selectedSquare = s;
+		},
+		selectSquare(s) {
+			s.select();
+			this._model.selectedSquare = s;
+		},
+		deselectAll() {
+			this.selectedSquare.deselect();
+			this.selectedSquare = null;
+		}
+	};
+	b.model = boardObject;
 	let boardRanks = ranks.map((rankLabel, rankIndex) => {
 		return makeRank(rankIndex);
 	});
-	boardRanks.forEach(e => {
-		b.appendChild(e);
-	});
+	for (i = 0; i < 8; i++) {
+		b.appendChild(boardRanks[i]._dom);
+		boardObject[i] = boardRanks[i];
+	}
 	
-	return b;
+	return boardObject;
 }
 // END makeBoard.js
 
-function getSquare(rankIndex, fileIndex) {
-	return document.getElementById('square_' + rankIndex + fileIndex);
+b = makeBoard();
+
+function toggleSelected (clickEvent) {
+	if (b.selectedSquare) {
+		b.deselectAll();
+	} else {
+		const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
+		b.selectSquare(clickedSquare);
+	}
 }
 
-function addPiecetoSquare(pieceColor, pieceType, square) {
-	square.setAttribute('piececolor', pieceColor);
-	square.setAttribute('piecetype', pieceType);
+function addButtons(b) {
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			b[i][j]._dom.addEventListener('click', toggleSelected)
+		}
+	}
+}
+
+addButtons(b);
+
+function getSquare(rankIndex, fileIndex) {
+	return b[rankIndex][fileIndex];
 }
 
 function addPieceToRankFile(pieceColor, pieceType, rankIndex, fileIndex) {
-	addPiecetoSquare(pieceColor, pieceType, getSquare(rankIndex, fileIndex));
-}
-
-function removePieceFromSquare(s) {
-	s.removeAttribute('piececolor');
-	s.removeAttribute('piecetype');
+	getSquare(rankIndex, fileIndex).addPiece(pieceColor, pieceType);
 }
 
 function removePieceFromRankFile(rankIndex, fileIndex) {
-	removePieceFromSquare(getSquare(rankIndex, fileIndex));
+	getSquare(rankIndex, fileIndex).removePiece();
 }
 
 function clearBoard() {
 	for (i = 0; i < 8; i++) {
 		for (j = 0; j < 8; j++) {
-			removePieceFromRankFile(i, j);
+			b[i][j].removePiece();
 		}
 	}
 }
@@ -110,24 +187,21 @@ function resetBoard() {
 	}
 }
 
-function deselectAll() {
-	for (i = 0; i < 8; i++) {
-		for (j = 0; j < 8; j++) {
-			let s = getSquare(i, j);
-			if (s.hasAttribute('selected')) s.removeAttribute('selected');
-		}
-	}
-}
-
 const app = document.getElementById('app');
-const b = makeBoard();
-app.appendChild(b);
+
+// statuses I need to track:
+// what's selected
+// what pieces are where
+// whether the king is in check
+// which pieces are highlighted
+
+app.appendChild(b._dom);
 
 const buttonReset = document.getElementById('button_reset');
 buttonReset.addEventListener('click', resetBoard);
 
 const buttonDeselect = document.getElementById('button_deselect');
-buttonDeselect.addEventListener('click', deselectAll);
+buttonDeselect.addEventListener('click', b.deselectAll);
 
 
 resetBoard();
