@@ -72,10 +72,47 @@ function removePieceFromRankFile(rankIndex, fileIndex) {
 	removePieceFromSquare(getSquare(rankIndex, fileIndex));
 }
 
+function clearBoard() {
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			removePieceFromRankFile(i, j);
+		}
+	}
+}
+
+function resetBoard() {
+	clearBoard();
+	
+	addPieceToRankFile('black', 'rook', 0, 0);
+	addPieceToRankFile('black', 'knight', 0, 1);
+	addPieceToRankFile('black', 'bishop', 0, 2);
+	addPieceToRankFile('black', 'queen', 0, 3);
+	addPieceToRankFile('black', 'king', 0, 4);
+	addPieceToRankFile('black', 'bishop', 0, 5);
+	addPieceToRankFile('black', 'knight', 0, 6);
+	addPieceToRankFile('black', 'rook', 0, 7);
+	
+	for (i = 0; i < 8; i++) {
+		addPieceToRankFile('black', 'pawn', 1, i);
+	}
+	
+	addPieceToRankFile('white', 'rook', 7, 0);
+	addPieceToRankFile('white', 'knight', 7, 1);
+	addPieceToRankFile('white', 'bishop', 7, 2);
+	addPieceToRankFile('white', 'queen', 7, 3);
+	addPieceToRankFile('white', 'king', 7, 4);
+	addPieceToRankFile('white', 'bishop', 7, 5);
+	addPieceToRankFile('white', 'knight', 7, 6);
+	addPieceToRankFile('white', 'rook', 7, 7);
+	
+	for (i = 0; i < 8; i++) {
+		addPieceToRankFile('white', 'pawn', 6, i);
+	}
+}
+
 const app = document.getElementById('app');
 
 const b = makeBoard();
 app.appendChild(b);
 
-addPieceToRankFile('white', 'knight', 3, 3);
-addPieceToRankFile('black', 'rook', 2, 5);
+resetBoard();

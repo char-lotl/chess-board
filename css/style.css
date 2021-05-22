@@ -38,7 +38,7 @@ body {
 }
 
 .square.light[selected] {
-	background-color: #E8E8D0;
+	background-color: #E0E0D0;
 }
 
 .square.dark {
