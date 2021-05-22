@@ -3,10 +3,22 @@
 const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
 const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
+const toggleSelected = function(clickEvent) {
+	const clickedSquare = clickEvent.currentTarget;
+	if (clickedSquare.hasAttribute('selected')) {
+		clickedSquare.removeAttribute('selected');
+	} else {
+		clickedSquare.setAttribute('selected', '');
+	}
+}
+
 function makeSquare(rankIndex, fileLabel, fileIndex) {
 	let s = document.createElement('div');
 	s.id = 'square_' + rankIndex + fileIndex;
 	s.className = 'square ' + (((fileIndex + rankIndex) % 2 === 1) ? 'dark' : 'light');
+	
+	s.addEventListener('click', toggleSelected);
+	
 	return s;
 }
 

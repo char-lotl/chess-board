@@ -37,8 +37,16 @@ body {
 	background-color: #D0D0D0;
 }
 
+.square.light[selected] {
+	background-color: #E8E8D0;
+}
+
 .square.dark {
 	background-color: #909080;
+}
+
+.square.dark[selected] {
+	background-color: #B0B080;
 }
 
 [piecetype] {
