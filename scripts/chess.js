@@ -51,6 +51,15 @@ function addPieceToRankFile(pieceColor, pieceType, rankIndex, fileIndex) {
 	addPiecetoSquare(pieceColor, pieceType, getSquare(rankIndex, fileIndex));
 }
 
+function removePieceFromSquare(s) {
+	s.removeAttribute('piececolor');
+	s.removeAttribute('piecetype');
+}
+
+function removePieceFromRankFile(rankIndex, fileIndex) {
+	removePieceFromSquare(getSquare(rankIndex, fileIndex));
+}
+
 const app = document.getElementById('app');
 
 const b = makeBoard();
