@@ -2,6 +2,7 @@
 // START makeBoard.js
 const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
 const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const backRank = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
 
 function makeSquare(rankIndex, fileLabel, fileIndex) {
 	let s = document.createElement('div');
@@ -10,7 +11,7 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 	s.rank = rankIndex;
 	s.file = fileIndex;
 	
-	//s.addEventListener('click', toggleSelected);
+	s.addEventListener('click', squareClick);
 	
 	return {
 		_dom: s,
@@ -38,6 +39,13 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 				this._model.pieceType = '';
 				this._dom.removeAttribute('piececolor');
 				this._dom.removeAttribute('piecetype');
+			}
+		},
+		get piece() {
+			if (this._model.pieceColor) {
+				return {color: this._model.pieceColor, type: this._model.pieceType};
+			} else {
+				return null;
 			}
 		},
 		deselect() {
@@ -98,12 +106,11 @@ function makeBoard() {
 			s.select();
 			this._model.selectedSquare = s;
 		},
-		deselectAll() {
+		deselect() {
 			this.selectedSquare.deselect();
 			this.selectedSquare = null;
 		}
 	};
-	b.model = boardObject;
 	let boardRanks = ranks.map((rankLabel, rankIndex) => {
 		return makeRank(rankIndex);
 	});
@@ -118,24 +125,21 @@ function makeBoard() {
 
 b = makeBoard();
 
-function toggleSelected (clickEvent) {
+function squareClick (clickEvent) {
 	if (b.selectedSquare) {
-		b.deselectAll();
+		b.deselect();
 	} else {
 		const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
-		b.selectSquare(clickedSquare);
-	}
-}
-
-function addButtons(b) {
-	for (i = 0; i < 8; i++) {
-		for (j = 0; j < 8; j++) {
-			b[i][j]._dom.addEventListener('click', toggleSelected)
+		if (clickedSquare.piece) { // only occupied squares can be selected
+			console.log(clickedSquare.piece);
+			b.selectSquare(clickedSquare);
 		}
 	}
 }
 
-addButtons(b);
+function deselectAll() {
+	b.deselect();
+}
 
 function getSquare(rankIndex, fileIndex) {
 	return b[rankIndex][fileIndex];
@@ -159,32 +163,12 @@ function clearBoard() {
 
 function resetBoard() {
 	clearBoard();
-	
-	addPieceToRankFile('black', 'rook', 0, 0);
-	addPieceToRankFile('black', 'knight', 0, 1);
-	addPieceToRankFile('black', 'bishop', 0, 2);
-	addPieceToRankFile('black', 'queen', 0, 3);
-	addPieceToRankFile('black', 'king', 0, 4);
-	addPieceToRankFile('black', 'bishop', 0, 5);
-	addPieceToRankFile('black', 'knight', 0, 6);
-	addPieceToRankFile('black', 'rook', 0, 7);
-	
-	for (i = 0; i < 8; i++) {
+	backRank.forEach((t, i) => {
+		addPieceToRankFile('black', t, 0, i);
+		addPieceToRankFile('white', t, 7, i);
 		addPieceToRankFile('black', 'pawn', 1, i);
-	}
-	
-	addPieceToRankFile('white', 'rook', 7, 0);
-	addPieceToRankFile('white', 'knight', 7, 1);
-	addPieceToRankFile('white', 'bishop', 7, 2);
-	addPieceToRankFile('white', 'queen', 7, 3);
-	addPieceToRankFile('white', 'king', 7, 4);
-	addPieceToRankFile('white', 'bishop', 7, 5);
-	addPieceToRankFile('white', 'knight', 7, 6);
-	addPieceToRankFile('white', 'rook', 7, 7);
-	
-	for (i = 0; i < 8; i++) {
 		addPieceToRankFile('white', 'pawn', 6, i);
-	}
+	});
 }
 
 const app = document.getElementById('app');
@@ -201,7 +185,7 @@ const buttonReset = document.getElementById('button_reset');
 buttonReset.addEventListener('click', resetBoard);
 
 const buttonDeselect = document.getElementById('button_deselect');
-buttonDeselect.addEventListener('click', b.deselectAll);
+buttonDeselect.addEventListener('click', deselectAll);
 
 
 resetBoard();
