@@ -1,8 +1,161 @@
 //import {makeBoard} from './makeBoard.js';
 // START makeBoard.js
-const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
-const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const rankLabels = [8, 7, 6, 5, 4, 3, 2, 1];
+const fileLabels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const backRank = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
+
+let b;
+let knightMoves = [[], [], [], [], [], [], [], []];
+const knightIntervals = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
+
+function generateKnightMoves () {
+	for (i = 0; i < 8; i++) {
+		knightMoves[i] = [[], [], [], [], [], [], [], []];
+	}
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			knightMoves[i][j] = generateKnightMovesFrom(i, j);
+		}
+	}
+}
+
+function generateKnightMovesFrom(r, f) {
+	m = [];
+	knightIntervals.forEach(i => {
+		let mrank = r + i[0];
+		let mfile = f + i[1];
+		if (isInBounds(mrank, mfile)) {
+			m.push(b[mrank][mfile]);
+		}
+	});
+	return m;
+}
+
+function isInBounds(r, f) {
+	return ((r >= 0) && (f >= 0) && (r < 8) && (f < 8));
+}
+
+function getLegalMoves(square) {
+	let legalMoves = [];
+	if (square.piece) switch (square.piece.type) {
+		case 'rook':
+			legalMoves = legalRookMovesFrom(square.rank, square.file);
+			break;
+		case 'knight':
+			legalMoves = legalKnightMovesFrom(square.rank, square.file);
+			break;
+		case 'bishop':
+			legalMoves = legalBishopMovesFrom(square.rank, square.file);
+			break;
+		case 'queen':
+			legalMoves = legalQueenMovesFrom(square.rank, square.file);
+			break;
+		case 'king':
+			legalMoves = legalKingMovesFrom(square.rank, square.file);
+			break;
+		case 'pawn':
+			if (square.piece.color === 'white') {
+				legalMoves = legalWhitePawnMovesFrom(square.rank, square.file);
+			} else {
+				legalMoves = legalBlackPawnMovesFrom(square.rank, square.file);
+			}
+			break;
+		default:
+			legalMoves = [];
+			console.log('Invalid piece type for getting moves.');
+			break;
+	}
+	return legalMoves;
+}
+
+function legalRookMovesFrom(r, f) {
+	let rightRay = rayFromIntervalExtent(r, f, 0, 1);
+	let upRay = rayFromIntervalExtent(r, f, -1, 0);
+	let leftRay = rayFromIntervalExtent(r, f, 0, -1);
+	let downRay = rayFromIntervalExtent(r, f, 1, 0);
+	
+	return rightRay.concat(upRay).concat(leftRay).concat(downRay);
+}
+
+function legalKnightMovesFrom(r, f) {
+	return knightMoves[r][f];
+}
+
+function legalBishopMovesFrom(r, f) {
+	let upRightRay = rayFromIntervalExtent(r, f, -1, 1);
+	let upLeftRay = rayFromIntervalExtent(r, f, -1, -1);
+	let downLeftRay = rayFromIntervalExtent(r, f, 1, -1);
+	let downRightRay = rayFromIntervalExtent(r, f, 1, 1);
+	
+	return upRightRay.concat(upLeftRay).concat(downLeftRay).concat(downRightRay);
+}
+
+function legalQueenMovesFrom(r, f) {
+	return legalRookMovesFrom(r, f)
+	.concat(legalBishopMovesFrom(r, f));
+}
+
+function legalKingMovesFrom(r, f) {
+	let rightStep = rayFromIntervalExtent(r, f, 0, 1, 1);
+	let upRightStep = rayFromIntervalExtent(r, f, -1, 1, 1);
+	let upStep = rayFromIntervalExtent(r, f, -1, 0, 1);
+	let upLeftStep = rayFromIntervalExtent(r, f, -1, -1, 1);
+	let leftStep = rayFromIntervalExtent(r, f, 0, -1, 1);
+	let downLeftStep = rayFromIntervalExtent(r, f, 1, -1, 1);
+	let downStep = rayFromIntervalExtent(r, f, 1, 0, 1);
+	let downRightStep = rayFromIntervalExtent(r, f, 1, 1, 1);
+	
+	return rightStep.concat(upRightStep).concat(upStep)
+	.concat(upLeftStep).concat(leftStep).concat(downLeftStep)
+	.concat(downStep).concat(downRightStep);
+}
+
+function legalWhitePawnMovesFrom(r, f) {
+	let upRay;
+	if (r === 6) {
+		upRay = rayFromIntervalExtent(r, f, -1, 0, 2);
+	} else {
+		upRay = rayFromIntervalExtent(r, f, -1, 0, 1);
+	}
+	return upRay;
+}
+
+function legalBlackPawnMovesFrom(r, f) {
+	let downRay;
+	if (r === 1) {
+		downRay = rayFromIntervalExtent(r, f, 1, 0, 2);
+	} else {
+		downRay = rayFromIntervalExtent(r, f, 1, 0, 1);
+	}
+	return downRay;
+}
+
+function rayFromIntervalExtent(r, f, ri, fi, ext) {
+	i = r + ri;
+	j = f + fi;
+	k = 1;
+	ray = [];
+	while (isInBounds(i, j) && (k <= ext)) {
+		ray.push(b[i][j]);
+		i += ri;
+		j += fi;
+		k++;
+	}
+	return ray;
+}
+
+function squareClick (clickEvent) {
+	if (b.selectedSquare) {
+		b.deselect();
+	} else {
+		const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
+		if (clickedSquare.piece) { // only occupied squares can be selected
+			b.selectSquare(clickedSquare);
+			let candidateMoves = getLegalMoves(clickedSquare);
+			console.log(candidateMoves);
+		}
+	}
+}
 
 function makeSquare(rankIndex, fileLabel, fileIndex) {
 	let s = document.createElement('div');
@@ -24,6 +177,12 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 			containsPiece: false,
 			pieceColor: '',
 			pieceType: ''
+		},
+		get rank() {
+			return this._model.rank;
+		},
+		get file() {
+			return this._model.file;
 		},
 		addPiece(color, type) {
 			this._model.pieceColor = color;
@@ -70,7 +229,7 @@ function makeRank(rankIndex) {
 	let r = document.createElement('div');
 	r.className = 'rank';
 	r.id = 'rank_' + rankIndex;
-	let rankSquares = files.map((fileLabel, fileIndex) => {
+	let rankSquares = fileLabels.map((fileLabel, fileIndex) => {
 		return makeSquare(rankIndex, fileLabel, fileIndex);
 	});
 	rankObject = {
@@ -111,7 +270,7 @@ function makeBoard() {
 			this.selectedSquare = null;
 		}
 	};
-	let boardRanks = ranks.map((rankLabel, rankIndex) => {
+	let boardRanks = rankLabels.map((rankLabel, rankIndex) => {
 		return makeRank(rankIndex);
 	});
 	for (i = 0; i < 8; i++) {
@@ -125,17 +284,8 @@ function makeBoard() {
 
 b = makeBoard();
 
-function squareClick (clickEvent) {
-	if (b.selectedSquare) {
-		b.deselect();
-	} else {
-		const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
-		if (clickedSquare.piece) { // only occupied squares can be selected
-			console.log(clickedSquare.piece);
-			b.selectSquare(clickedSquare);
-		}
-	}
-}
+generateKnightMoves();
+
 
 function deselectAll() {
 	b.deselect();
