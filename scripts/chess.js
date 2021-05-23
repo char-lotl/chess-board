@@ -43,41 +43,160 @@ function invertColor(c) {
 	else return 'white';
 }
 
+function getPin(square, color) {
+	if (square.piece.type === 'king') return null; // kings can't be pinned!
+	kingDir = [b.kingPosition[color].rank - square.rank,
+			   b.kingPosition[color].file - square.file];
+	let p = { direction: null, dirType: null };
+	if (kingDir[0] === 0) {
+		if (kingDir[1] > 0) {
+			if (isColorPinnedFromDir(color, square.rank, square.file, 0, -1)) {
+				p.direction = [0, -1];
+				//p.dirType = 'ortho';
+			}
+		} else {
+			if (isColorPinnedFromDir(color, square.rank, square.file, 0, 1)) {
+				p.direction = [0, 1];
+				//p.dirType = 'ortho';
+			}
+		}
+	}
+	if (kingDir[1] === 0) {
+		if (kingDir[0] > 0) {
+			if (isColorPinnedFromDir(color, square.rank, square.file, -1, 0)) {
+				p.direction = [-1, 0];
+				//p.dirType = 'ortho';
+			}
+		} else {
+			if (isColorPinnedFromDir(color, square.rank, square.file, 1, 0)) {
+				p.direction = [1, 0];
+				//p.dirType = 'ortho';
+			}
+		}
+	}
+	if (kingDir[0] === kingDir[1]) {
+		if (kingDir[0] > 0) {
+			if (isColorPinnedFromDir(color, square.rank, square.file, -1, -1)) {
+				p.direction = [-1, -1];
+				//p.dirType = 'diag';
+			}
+		} else {
+			if (isColorPinnedFromDir(color, square.rank, square.file, 1, 1)) {
+				p.direction = [1, 1];
+				//p.dirType = 'diag';
+			}
+		}
+	}
+	if (kingDir[0] + kingDir[1] === 0) {
+		if (kingDir[0] > 0) {
+			if (isColorPinnedFromDir(color, square.rank, square.file, -1, 1)) {
+				p.direction = [-1, 1];
+				//p.dirType = 'diag';
+			}
+		} else {
+			if (isColorPinnedFromDir(color, square.rank, square.file, 1, -1)) {
+				p.direction = [1, -1];
+				//p.dirType = 'diag';
+			}
+		}
+	}
+	if (p.direction) {
+		p.dirType = getDirType(p.direction[0], p.direction[1]);
+		return p;
+	}
+	else return null;
+}
+
+function isColorKingFirstInDirFrom(c, r, f, ri, fi) {
+	let p = firstUnselectedPieceInDirectionFrom(r, f, ri, fi);
+	return (!!p && (p.type === 'king') && (p.color === c));
+}
+
+function isColorAttackedFromDir(c, r, f, ri, fi) {
+	let p = firstUnselectedPieceInDirectionFrom(r, f, ri, fi);
+	return (!!p && (p.color !== c) && canTypeAttackFromDir(p.type, ri, fi));
+}
+
+function isColorPinnedFromDir(c, r, f, ri, fi) {
+	return (isColorKingFirstInDirFrom(c, r, f, -ri, -fi)
+			&& isColorAttackedFromDir(c, r, f, ri, fi));
+}
+
+function canTypeAttackFromDir(t, ri, fi) {
+	if (t === 'queen') return true;
+	let dt = getDirType(ri, fi);
+	return pieceHasDirType(t, dt);
+}
+
+function getDirType(ri, fi) {
+	let p = (ri + fi + 2) % 2;
+	if (p === 1) return 'ortho';
+	else return 'diag';
+}
+
+function pieceHasDirType(pieceType, dirType) {
+	if (pieceType === 'queen') return true;
+	if (dirType === 'ortho') return (pieceType === 'rook');
+	if (dirType === 'diag') return (pieceType === 'bishop');
+	console.log('Invalid move type.');
+	return false;
+}
+
 function getLegalMoves(square) {
 	let legalMoves = [];
 	let p = square.piece;
-	if (p) switch (p.type) {
+	let pin = getPin(square, p.color);
+	if (!pin) {
+		legalMoves = getUnpinnedLegalMoves(square, p.color, p.type);
+	} else {
+		if (pieceHasDirType(p.type, pin.dirType)) {
+			let pinDirMoves = rayFromIntervalExtent(square.rank, square.file,
+													pin.direction[0], pin.direction[1]);
+			let kingDirMoves = rayFromIntervalExtent(square.rank, square.file,
+													 -pin.direction[0], -pin.direction[1]);
+			legalMoves = pinDirMoves.concat(kingDirMoves);
+		}
+	}
+	// no capturing your own color!
+	return legalMoves.filter(s => {
+		return (!(s.piece) || (s.piece.color !== p.color));
+	});
+}
+
+function getUnpinnedLegalMoves(square, pieceColor, pieceType) {
+	let legalMoves;
+	switch (pieceType) {
 		case 'rook':
-			legalMoves = legalRookMovesFrom(square.rank, square.file);
+			legalMoves = legalColorRookMovesFrom(pieceColor, square.rank, square.file);
 			break;
 		case 'knight':
 			legalMoves = legalKnightMovesFrom(square.rank, square.file);
 			break;
 		case 'bishop':
-			legalMoves = legalBishopMovesFrom(square.rank, square.file);
+			legalMoves = legalColorBishopMovesFrom(pieceColor, square.rank, square.file);
 			break;
 		case 'queen':
-			legalMoves = legalQueenMovesFrom(square.rank, square.file);
+			legalMoves = legalColorQueenMovesFrom(pieceColor, square.rank, square.file);
 			break;
 		case 'king':
-			legalMoves = legalColorKingMovesFrom(p.color, square.rank, square.file);
+			legalMoves = legalColorKingMovesFrom(pieceColor, square.rank, square.file);
 			break;
 		case 'pawn':
-			legalMoves = legalColorPawnMovesFrom(p.color, square.rank, square.file);
+			legalMoves = legalColorPawnMovesFrom(pieceColor, square.rank, square.file);
 			break;
 		default:
-			legalMoves = [];
 			console.log('Invalid piece type for getting moves.');
 			break;
 	}
 	return legalMoves;
 }
 
-function legalRookMovesFrom(r, f) {
-	let rightRay = rayFromIntervalExtent(r, f, 0, 1);
-	let upRay = rayFromIntervalExtent(r, f, -1, 0);
-	let leftRay = rayFromIntervalExtent(r, f, 0, -1);
-	let downRay = rayFromIntervalExtent(r, f, 1, 0);
+
+function legalColorRookMovesFrom(c, r, f) {
+	let rightRay = colorRayFromIntervalExtent(c, r, f, 0, 1);
+	let upRay = colorRayFromIntervalExtent(c, r, f, -1, 0);
+	let leftRay = colorRayFromIntervalExtent(c, r, f, 0, -1);
+	let downRay = colorRayFromIntervalExtent(c, r, f, 1, 0);
 	
 	return rightRay.concat(upRay).concat(leftRay).concat(downRay);
 }
@@ -86,18 +205,17 @@ function legalKnightMovesFrom(r, f) {
 	return knightMoves[r][f];
 }
 
-function legalBishopMovesFrom(r, f) {
-	let upRightRay = rayFromIntervalExtent(r, f, -1, 1);
-	let upLeftRay = rayFromIntervalExtent(r, f, -1, -1);
-	let downLeftRay = rayFromIntervalExtent(r, f, 1, -1);
-	let downRightRay = rayFromIntervalExtent(r, f, 1, 1);
+function legalColorBishopMovesFrom(c, r, f) {
+	let upRightRay = colorRayFromIntervalExtent(c, r, f, -1, 1);
+	let upLeftRay = colorRayFromIntervalExtent(c, r, f, -1, -1);
+	let downLeftRay = colorRayFromIntervalExtent(c, r, f, 1, -1);
+	let downRightRay = colorRayFromIntervalExtent(c, r, f, 1, 1);
 	
 	return upRightRay.concat(upLeftRay).concat(downLeftRay).concat(downRightRay);
 }
 
-function legalQueenMovesFrom(r, f) {
-	return legalRookMovesFrom(r, f)
-	.concat(legalBishopMovesFrom(r, f));
+function legalColorQueenMovesFrom(c, r, f) {
+	return legalColorRookMovesFrom(c, r, f).concat(legalColorBishopMovesFrom(c, r, f));
 }
 
 function legalColorKingMovesFrom(c, r, f) {
@@ -127,16 +245,17 @@ function allKingMovesFrom(r, f) {
 
 function legalColorPawnMovesFrom(c, r, f) {
 	let pawnMoves = [];
-	let upRay;
+	let pushRay;
 	let isWhite = (c === 'white');
 	let enemyColor = invertColor(c);
 	let startRank = isWhite ? 6 : 1;
 	let moveDir = pawnDir[c];
 	if (r === startRank) {
-		pushRay = rayFromIntervalExtent(r, f, moveDir, 0, 2);
+		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 2);
 	} else {
-		pushRay = rayFromIntervalExtent(r, f, moveDir, 0, 1);
+		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 1);
 	}
+	if (pushRay[pushRay.length - 1].piece) pushRay.pop(); // no forward pawn caps
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f - 1)) {
 		pawnMoves.push(b[r + moveDir][f - 1]);
 	}
@@ -158,6 +277,16 @@ function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
 		k++;
 	}
 	return ray;
+}
+
+function colorRayFromIntervalExtent(c, r, f, ri, fi, ext = 7) {
+	let ray = rayFromIntervalExtent(r, f, ri, fi, ext);
+	let i = ray.findIndex(s => !!(s.piece)); // returns -1 if not found!
+	if (i >= 0) {
+		ray = ray.slice(0, i + 1);
+	}
+	return ray;
+	// the logic for not capturing your own pieces is elsewhere
 }
 
 function firstUnselectedPieceInDirectionFrom(r, f, ri, fi) {
@@ -350,7 +479,8 @@ function makeBoard() {
 		_model: {
 			selectedSquare: null,
 			highlightedSquares: [],
-			isWhitesTurn: true
+			isWhitesTurn: true,
+			kingPosition: { 'white': null, 'black': null }
 		},
 		hasColorPieceOn(c, r, f) {
 			return (isInBounds(r, f) && this[r][f].piece && (this[r][f].piece.color === c));
@@ -381,6 +511,9 @@ function makeBoard() {
 			let p = this.selectedSquare.piece;
 			this.selectedSquare.removePiece();
 			s.addPiece(p.color, p.type);
+			if (p.type === 'king') {
+				this._model.kingPosition[p.color] = s;
+			}
 		},
 		highlightSquares(squares) {
 			squares.forEach(s => {
@@ -400,8 +533,13 @@ function makeBoard() {
 		get whoseTurn() {
 			return this._model.isWhitesTurn ? 'white' : 'black';
 		},
+		get kingPosition() {
+			return this._model.kingPosition;
+		},
 		resetBoardVariables() {
 			this._model.isWhitesTurn = true;
+			this._model.kingPosition['white'] = this[7][4];
+			this._model.kingPosition['black'] = this[0][4];
 		}
 	};
 	let boardRanks = rankLabels.map((rankLabel, rankIndex) => {
