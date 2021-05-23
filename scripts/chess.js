@@ -32,9 +32,15 @@ function isInBounds(r, f) {
 	return ((r >= 0) && (f >= 0) && (r < 8) && (f < 8));
 }
 
+function invertColor(c) {
+	if (c === 'white') return 'black';
+	else return 'white';
+}
+
 function getLegalMoves(square) {
 	let legalMoves = [];
-	if (square.piece) switch (square.piece.type) {
+	let p = square.piece;
+	if (p) switch (p.type) {
 		case 'rook':
 			legalMoves = legalRookMovesFrom(square.rank, square.file);
 			break;
@@ -48,14 +54,10 @@ function getLegalMoves(square) {
 			legalMoves = legalQueenMovesFrom(square.rank, square.file);
 			break;
 		case 'king':
-			legalMoves = legalKingMovesFrom(square.rank, square.file);
+			legalMoves = legalColorKingMovesFrom(p.color, square.rank, square.file);
 			break;
 		case 'pawn':
-			if (square.piece.color === 'white') {
-				legalMoves = legalWhitePawnMovesFrom(square.rank, square.file);
-			} else {
-				legalMoves = legalBlackPawnMovesFrom(square.rank, square.file);
-			}
+			legalMoves = legalColorPawnMovesFrom(p.color, square.rank, square.file);
 			break;
 		default:
 			legalMoves = [];
@@ -92,7 +94,16 @@ function legalQueenMovesFrom(r, f) {
 	.concat(legalBishopMovesFrom(r, f));
 }
 
-function legalKingMovesFrom(r, f) {
+function legalColorKingMovesFrom(c, r, f) {
+	let allMoves = allKingMovesFrom(r, f);
+	console.log(allMoves.length);
+	let legalMoves = allMoves.filter(s => {
+		return !s.isGuardedBy(invertColor(c));
+	});
+	return legalMoves;
+}
+
+function allKingMovesFrom(r, f) {
 	let rightStep = rayFromIntervalExtent(r, f, 0, 1, 1);
 	let upRightStep = rayFromIntervalExtent(r, f, -1, 1, 1);
 	let upStep = rayFromIntervalExtent(r, f, -1, 0, 1);
@@ -102,43 +113,32 @@ function legalKingMovesFrom(r, f) {
 	let downStep = rayFromIntervalExtent(r, f, 1, 0, 1);
 	let downRightStep = rayFromIntervalExtent(r, f, 1, 1, 1);
 	
-	return rightStep.concat(upRightStep).concat(upStep)
+	let allMoves = rightStep.concat(upRightStep).concat(upStep)
 	.concat(upLeftStep).concat(leftStep).concat(downLeftStep)
 	.concat(downStep).concat(downRightStep);
+	
+	return allMoves;
 }
 
-function legalWhitePawnMovesFrom(r, f) {
+function legalColorPawnMovesFrom(c, r, f) {
 	let pawnMoves = [];
 	let upRay;
-	if (r === 6) {
-		upRay = rayFromIntervalExtent(r, f, -1, 0, 2);
+	let isWhite = (c === 'white');
+	let enemyColor = invertColor(c);
+	let startRank = isWhite ? 6 : 1;
+	let moveDir = isWhite ? -1 : 1;
+	if (r === startRank) {
+		pushRay = rayFromIntervalExtent(r, f, moveDir, 0, 2);
 	} else {
-		upRay = rayFromIntervalExtent(r, f, -1, 0, 1);
+		pushRay = rayFromIntervalExtent(r, f, moveDir, 0, 1);
 	}
-	if (b.hasColorPieceOn('black', r - 1, f - 1)) {
-		pawnMoves.push(b[r - 1][f - 1]);
+	if (b.hasColorPieceOn(enemyColor, r + moveDir, f - 1)) {
+		pawnMoves.push(b[r + moveDir][f - 1]);
 	}
-	if (b.hasColorPieceOn('black', r - 1, f + 1)) {
-		pawnMoves.push(b[r - 1][f + 1]);
+	if (b.hasColorPieceOn(enemyColor, r + moveDir, f + 1)) {
+		pawnMoves.push(b[r + moveDir][f + 1]);
 	}
-	return pawnMoves.concat(upRay);
-}
-
-function legalBlackPawnMovesFrom(r, f) {
-	let pawnMoves = [];
-	let downRay;
-	if (r === 1) {
-		downRay = rayFromIntervalExtent(r, f, 1, 0, 2);
-	} else {
-		downRay = rayFromIntervalExtent(r, f, 1, 0, 1);
-	}
-	if (b.hasColorPieceOn('white', r + 1, f - 1)) {
-		pawnMoves.push(b[r + 1][f - 1]);
-	}
-	if (b.hasColorPieceOn('white', r + 1, f + 1)) {
-		pawnMoves.push(b[r + 1][f + 1]);
-	}
-	return pawnMoves.concat(downRay);
+	return pawnMoves.concat(pushRay);
 }
 
 function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
@@ -251,8 +251,27 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 		get isHighlighted() {
 			return this._model.highlighted;
 		},
-		toggleSelected() {
-			// fill this in in a sec
+		isGuardedBy(color) {
+			let gbp = this.isGuardedByPawn(color);
+			//let gbn = this.isGuardedByKnight(color);
+			//let gbk = this.isGuardedByKing(color);
+			//let gf0 = this.isGuardedFromRight(color);
+			//let gf45 = this.isGuardedFromUpRight(color);
+			//let gf90 = this.isGuardedFromUp(color);
+			//let gf135 = this.isGuardedFromUpLeft(color);
+			//let gf180 = this.isGuardedFromLeft(color);
+			//let gf225 = this.isGuardedFromDownLeft(color);
+			//let gf270 = this.isGuardedFromDown(color);
+			//let gf315 = this.isGuardedFromDownRight(color);
+			return gbp; // placeholder functionality
+		},
+		isGuardedByPawn(c) {
+			let vantages = legalColorPawnMovesFrom(invertColor(c), this.rank, this.file);
+			let foundGuard = false;
+			vantages.forEach(s => {
+				foundGuard = foundGuard || b.hasColorTypePieceOn(c, 'pawn', s.rank, s.file);
+			});
+			return foundGuard;
 		}
 	};
 }
@@ -289,8 +308,12 @@ function makeBoard() {
 			isWhitesTurn: true
 		},
 		hasColorPieceOn(c, r, f) {
-			//console.log(this[r][f].piece);
 			return (isInBounds(r, f) && this[r][f].piece && (this[r][f].piece.color === c));
+		},
+		hasColorTypePieceOn(c, t, r, f) {
+			return (isInBounds(r, f) && this[r][f].piece
+					&& (this[r][f].piece.color === c)
+					&& (this[r][f].piece.type === t));
 		},
 		removePieceFromRankFile(r, f) {
 			this[r][f].removePiece();
