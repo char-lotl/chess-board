@@ -316,6 +316,9 @@ function makeBoard() {
 		},
 		get whoseTurn() {
 			return this._model.isWhitesTurn ? 'white' : 'black';
+		},
+		resetBoardVariables() {
+			this._model.isWhitesTurn = true;
 		}
 	};
 	let boardRanks = rankLabels.map((rankLabel, rankIndex) => {
@@ -358,6 +361,7 @@ function resetBoard() {
 		addPieceToRankFile('black', 'pawn', 1, i);
 		addPieceToRankFile('white', 'pawn', 6, i);
 	});
+	b.resetBoardVariables();
 }
 
 const app = document.getElementById('app');
