@@ -311,11 +311,6 @@ b = makeBoard();
 
 generateKnightMoves();
 
-
-function deselectAll() {
-	b.deselect();
-}
-
 function getSquare(rankIndex, fileIndex) {
 	return b[rankIndex][fileIndex];
 }
@@ -358,9 +353,5 @@ app.appendChild(b._dom);
 
 const buttonReset = document.getElementById('button_reset');
 buttonReset.addEventListener('click', resetBoard);
-
-const buttonDeselect = document.getElementById('button_deselect');
-buttonDeselect.addEventListener('click', deselectAll);
-
 
 resetBoard();
