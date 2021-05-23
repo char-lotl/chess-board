@@ -8,6 +8,12 @@ let b;
 let knightMoves = [[], [], [], [], [], [], [], []];
 const knightIntervals = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
 
+const rookDirs = [[0, 1], [-1, 0], [0, -1], [1, 0]];
+const bishopDirs = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+const queenDirs = rookDirs.concat(bishopDirs);
+
+const pawnDir = {'black': 1, 'white': -1};
+
 function generateKnightMoves () {
 	for (i = 0; i < 8; i++) {
 		for (j = 0; j < 8; j++) {
@@ -96,7 +102,6 @@ function legalQueenMovesFrom(r, f) {
 
 function legalColorKingMovesFrom(c, r, f) {
 	let allMoves = allKingMovesFrom(r, f);
-	console.log(allMoves.length);
 	let legalMoves = allMoves.filter(s => {
 		return !s.isGuardedBy(invertColor(c));
 	});
@@ -126,7 +131,7 @@ function legalColorPawnMovesFrom(c, r, f) {
 	let isWhite = (c === 'white');
 	let enemyColor = invertColor(c);
 	let startRank = isWhite ? 6 : 1;
-	let moveDir = isWhite ? -1 : 1;
+	let moveDir = pawnDir[c];
 	if (r === startRank) {
 		pushRay = rayFromIntervalExtent(r, f, moveDir, 0, 2);
 	} else {
@@ -153,6 +158,16 @@ function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
 		k++;
 	}
 	return ray;
+}
+
+function firstUnselectedPieceInDirectionFrom(r, f, ri, fi) {
+	let squareRay = rayFromIntervalExtent(r, f, ri, fi);
+	let piecesOnRay = squareRay.filter(s => {
+		return !!(s.piece) && (!s.isSelected);
+	});
+	if (piecesOnRay.length === 0) {
+		return null;
+	} else return piecesOnRay[0].piece;
 }
 
 function squareClick (clickEvent) {
@@ -236,6 +251,9 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 				this._dom.setAttribute('selected', '');
 			}
 		},
+		get isSelected() {
+			return this._model.selected;
+		},
 		unhighlight() {
 			if (this._model.highlighted) {
 				this._model.highlighted = false;
@@ -253,25 +271,52 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 		},
 		isGuardedBy(color) {
 			let gbp = this.isGuardedByPawn(color);
-			//let gbn = this.isGuardedByKnight(color);
-			//let gbk = this.isGuardedByKing(color);
-			//let gf0 = this.isGuardedFromRight(color);
-			//let gf45 = this.isGuardedFromUpRight(color);
-			//let gf90 = this.isGuardedFromUp(color);
-			//let gf135 = this.isGuardedFromUpLeft(color);
-			//let gf180 = this.isGuardedFromLeft(color);
-			//let gf225 = this.isGuardedFromDownLeft(color);
-			//let gf270 = this.isGuardedFromDown(color);
-			//let gf315 = this.isGuardedFromDownRight(color);
-			return gbp; // placeholder functionality
+			let gbn = this.isGuardedByKnight(color);
+			let gbk = this.isGuardedByKing(color);
+			let gbr = this.isGuardedByRook(color);
+			let gbb = this.isGuardedByBishop(color);
+			let gbq = this.isGuardedByQueen(color);
+			return gbp || gbn || gbk || gbr || gbb || gbq;
 		},
 		isGuardedByPawn(c) {
-			let vantages = legalColorPawnMovesFrom(invertColor(c), this.rank, this.file);
-			let foundGuard = false;
-			vantages.forEach(s => {
-				foundGuard = foundGuard || b.hasColorTypePieceOn(c, 'pawn', s.rank, s.file);
-			});
-			return foundGuard;
+			let pdc = pawnDir[c];
+			let vantageCoords = [[this.rank - pdc, this.file - 1],
+								 [this.rank - pdc, this.file + 1]];
+			vantageCoords = vantageCoords.filter(c => isInBounds(c[0], c[1]));
+			let vantages = vantageCoords.map(c => b[c[0]][c[1]]);
+			return vantages.reduce((a, s) => {
+				return a || b.hasColorTypePieceOn(c, 'pawn', s.rank, s.file);
+			}, false);
+		},
+		isGuardedByKnight(c) {
+			let vantages = legalKnightMovesFrom(this.rank, this.file);
+			return vantages.reduce((a, s) => {
+				return a || b.hasColorTypePieceOn(c, 'knight', s.rank, s.file);
+			}, false);
+		},
+		isGuardedByKing(c) {
+			let vantages = allKingMovesFrom(this.rank, this.file);
+			return vantages.reduce((a, s) => {
+				return a || b.hasColorTypePieceOn(c, 'king', s.rank, s.file);
+			}, false);
+		},
+		isGuardedFromDirByPiece(c, t, ri, fi) {
+			let p = firstUnselectedPieceInDirectionFrom(this.rank, this.file, ri, fi);
+			return !!p && (p.color === c) && (p.type === t);
+		},
+		isGuardedFromDirsByPiece(c, t, ds) {
+			return ds.reduce((a, d) => {
+				return a || this.isGuardedFromDirByPiece(c, t, d[0], d[1]);
+			}, false);
+		},
+		isGuardedByRook(c) {
+			return this.isGuardedFromDirsByPiece(c, 'rook', rookDirs);
+		},
+		isGuardedByBishop(c) {
+			return this.isGuardedFromDirsByPiece(c, 'bishop', bishopDirs);
+		},
+		isGuardedByQueen(c) {
+			return this.isGuardedFromDirsByPiece(c, 'queen', queenDirs);
 		}
 	};
 }
