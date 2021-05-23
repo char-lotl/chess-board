@@ -145,11 +145,16 @@ function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
 }
 
 function squareClick (clickEvent) {
+	const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
 	if (b.selectedSquare) {
+		if (clickedSquare.isHighlighted) {
+			b.moveSelectedToSquare(clickedSquare);
+			b.switchTurn();
+		}
 		b.deselect();
 	} else {
-		const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
-		if (clickedSquare.piece) { // only occupied squares can be selected
+		if (clickedSquare.piece && (clickedSquare.piece.color == b.whoseTurn)) {
+			// only occupied squares of the current turn's color can be selected
 			b.selectSquare(clickedSquare);
 			let candidateMoves = getLegalMoves(clickedSquare);
 			b.highlightSquares(candidateMoves);
@@ -232,6 +237,9 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 				this._dom.setAttribute('highlighted', '');
 			}
 		},
+		get isHighlighted() {
+			return this._model.highlighted;
+		},
 		toggleSelected() {
 			// fill this in in a sec
 		}
@@ -266,7 +274,11 @@ function makeBoard() {
 		_dom: b,
 		_model: {
 			selectedSquare: null,
-			highlightedSquares: []
+			highlightedSquares: [],
+			isWhitesTurn: true
+		},
+		removePieceFromRankFile(r, f) {
+			this[r][f].removePiece();
 		},
 		get selectedSquare() {
 			return this._model.selectedSquare;
@@ -282,6 +294,11 @@ function makeBoard() {
 			this.selectedSquare.deselect();
 			this.selectedSquare = null;
 		},
+		moveSelectedToSquare(s) {
+			let p = this.selectedSquare.piece;
+			this.selectedSquare.removePiece();
+			s.addPiece(p.color, p.type);
+		},
 		highlightSquares(squares) {
 			squares.forEach(s => {
 				this._model.highlightedSquares.push(s);
@@ -293,6 +310,12 @@ function makeBoard() {
 				s.unhighlight();
 			});
 			this._model.highlightedSquares = [];
+		},
+		switchTurn() {
+			this._model.isWhitesTurn = !(this._model.isWhitesTurn);
+		},
+		get whoseTurn() {
+			return this._model.isWhitesTurn ? 'white' : 'black';
 		}
 	};
 	let boardRanks = rankLabels.map((rankLabel, rankIndex) => {
@@ -317,10 +340,6 @@ function getSquare(rankIndex, fileIndex) {
 
 function addPieceToRankFile(pieceColor, pieceType, rankIndex, fileIndex) {
 	getSquare(rankIndex, fileIndex).addPiece(pieceColor, pieceType);
-}
-
-function removePieceFromRankFile(rankIndex, fileIndex) {
-	getSquare(rankIndex, fileIndex).removePiece();
 }
 
 function clearBoard() {
