@@ -147,7 +147,6 @@ function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
 function squareClick (clickEvent) {
 	if (b.selectedSquare) {
 		b.deselect();
-		b.unhighlight();
 	} else {
 		const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
 		if (clickedSquare.piece) { // only occupied squares can be selected
@@ -213,6 +212,7 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 				this._model.selected = false;
 				this._dom.removeAttribute('selected');
 			}
+			b.unhighlight();
 		},
 		select() {
 			if (!(this._model.selected)) {
