@@ -130,7 +130,7 @@ function legalBlackPawnMovesFrom(r, f) {
 	return downRay;
 }
 
-function rayFromIntervalExtent(r, f, ri, fi, ext) {
+function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
 	i = r + ri;
 	j = f + fi;
 	k = 1;
@@ -147,12 +147,13 @@ function rayFromIntervalExtent(r, f, ri, fi, ext) {
 function squareClick (clickEvent) {
 	if (b.selectedSquare) {
 		b.deselect();
+		b.unhighlight();
 	} else {
 		const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
 		if (clickedSquare.piece) { // only occupied squares can be selected
 			b.selectSquare(clickedSquare);
 			let candidateMoves = getLegalMoves(clickedSquare);
-			console.log(candidateMoves);
+			b.highlightSquares(candidateMoves);
 		}
 	}
 }
@@ -219,6 +220,18 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 				this._dom.setAttribute('selected', '');
 			}
 		},
+		unhighlight() {
+			if (this._model.highlighted) {
+				this._model.highlighted = false;
+				this._dom.removeAttribute('highlighted');
+			}
+		},
+		highlight() {
+			if (!(this._model.highlighted)) {
+				this._model.highlighted = true;
+				this._dom.setAttribute('highlighted', '');
+			}
+		},
 		toggleSelected() {
 			// fill this in in a sec
 		}
@@ -268,6 +281,18 @@ function makeBoard() {
 		deselect() {
 			this.selectedSquare.deselect();
 			this.selectedSquare = null;
+		},
+		highlightSquares(squares) {
+			squares.forEach(s => {
+				this._model.highlightedSquares.push(s);
+				s.highlight();
+			});
+		},
+		unhighlight() {
+			this._model.highlightedSquares.forEach(s => {
+				s.unhighlight();
+			});
+			this._model.highlightedSquares = [];
 		}
 	};
 	let boardRanks = rankLabels.map((rankLabel, rankIndex) => {

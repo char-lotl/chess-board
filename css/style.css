@@ -55,12 +55,20 @@ body {
 	background-color: #E4E4D4;
 }
 
+.square.light[highlighted] {
+	background-color: #E0E0F0;
+}
+
 .square.dark {
 	background-color: #909080;
 }
 
 .square.dark[selected] {
 	background-color: #B0B080;
+}
+
+.square.dark[highlighted] {
+	background-color: #9898A8;
 }
 
 [piecetype] {
