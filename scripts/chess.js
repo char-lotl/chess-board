@@ -111,21 +111,35 @@ function legalKingMovesFrom(r, f) {
 }
 
 function legalWhitePawnMovesFrom(r, f) {
+	let pawnMoves = [];
 	let upRay;
 	if (r === 6) {
 		upRay = rayFromIntervalExtent(r, f, -1, 0, 2);
 	} else {
 		upRay = rayFromIntervalExtent(r, f, -1, 0, 1);
 	}
-	return upRay;
+	if (b.hasColorPieceOn('black', r - 1, f - 1)) {
+		pawnMoves.push(b[r - 1][f - 1]);
+	}
+	if (b.hasColorPieceOn('black', r - 1, f + 1)) {
+		pawnMoves.push(b[r - 1][f + 1]);
+	}
+	return pawnMoves.concat(upRay);
 }
 
 function legalBlackPawnMovesFrom(r, f) {
+	let pawnMoves = [];
 	let downRay;
 	if (r === 1) {
 		downRay = rayFromIntervalExtent(r, f, 1, 0, 2);
 	} else {
 		downRay = rayFromIntervalExtent(r, f, 1, 0, 1);
+	}
+	if (b.hasColorPieceOn('white', r + 1, f - 1)) {
+		pawnMoves.push(b[r + 1][f - 1]);
+	}
+	if (b.hasColorPieceOn('white', r + 1, f + 1)) {
+		pawnMoves.push(b[r + 1][f + 1]);
 	}
 	return downRay;
 }
@@ -276,6 +290,9 @@ function makeBoard() {
 			selectedSquare: null,
 			highlightedSquares: [],
 			isWhitesTurn: true
+		},
+		hasColorPieceOn(c, r, f) {
+			return (this[r][f].piece && (this[r][f].piece.color === c));
 		},
 		removePieceFromRankFile(r, f) {
 			this[r][f].removePiece();
