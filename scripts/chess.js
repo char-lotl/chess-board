@@ -10,9 +10,6 @@ const knightIntervals = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [
 
 function generateKnightMoves () {
 	for (i = 0; i < 8; i++) {
-		knightMoves[i] = [[], [], [], [], [], [], [], []];
-	}
-	for (i = 0; i < 8; i++) {
 		for (j = 0; j < 8; j++) {
 			knightMoves[i][j] = generateKnightMovesFrom(i, j);
 		}
@@ -141,7 +138,7 @@ function legalBlackPawnMovesFrom(r, f) {
 	if (b.hasColorPieceOn('white', r + 1, f + 1)) {
 		pawnMoves.push(b[r + 1][f + 1]);
 	}
-	return downRay;
+	return pawnMoves.concat(downRay);
 }
 
 function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
@@ -292,7 +289,8 @@ function makeBoard() {
 			isWhitesTurn: true
 		},
 		hasColorPieceOn(c, r, f) {
-			return (this[r][f].piece && (this[r][f].piece.color === c));
+			//console.log(this[r][f].piece);
+			return (isInBounds(r, f) && this[r][f].piece && (this[r][f].piece.color === c));
 		},
 		removePieceFromRankFile(r, f) {
 			this[r][f].removePiece();
