@@ -13,6 +13,7 @@ const bishopDirs = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
 const queenDirs = rookDirs.concat(bishopDirs);
 
 const pawnDir = {'black': 1, 'white': -1};
+const startRankByColor = { 'black': 1, 'white': 6 };
 
 function generateKnightMoves () {
 	for (i = 0; i < 8; i++) {
@@ -150,12 +151,22 @@ function getLegalMoves(square) {
 		legalMoves = getUnpinnedLegalMoves(square, p.color, p.type);
 	} else {
 		if (pieceHasDirType(p.type, pin.dirType)) {
-			let pinDirMoves = rayFromIntervalExtent(square.rank, square.file,
+			let pinDirMoves = colorRayFromIntervalExtent(p.color, square.rank, square.file,
 													pin.direction[0], pin.direction[1]);
-			let kingDirMoves = rayFromIntervalExtent(square.rank, square.file,
+			let kingDirMoves = colorRayFromIntervalExtent(p.color, square.rank, square.file,
 													 -pin.direction[0], -pin.direction[1]);
 			legalMoves = pinDirMoves.concat(kingDirMoves);
 		}
+		if (p.type === 'pawn') {
+			if ((pin.dirType === 'ortho')
+				&& (pin.direction[0] !== 0)) {
+				legalMoves = getForwardColorPawnMovesFrom(p.color, square.rank, square.file);
+			}
+			// need to implement capturing out of pin!
+		}
+		
+		
+		
 	}
 	// no capturing your own color!
 	return legalMoves.filter(s => {
@@ -245,17 +256,9 @@ function allKingMovesFrom(r, f) {
 
 function legalColorPawnMovesFrom(c, r, f) {
 	let pawnMoves = [];
-	let pushRay;
-	let isWhite = (c === 'white');
+	let pushRay = getForwardColorPawnMovesFrom(c, r, f);
 	let enemyColor = invertColor(c);
-	let startRank = isWhite ? 6 : 1;
-	let moveDir = pawnDir[c];
-	if (r === startRank) {
-		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 2);
-	} else {
-		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 1);
-	}
-	if (pushRay[pushRay.length - 1].piece) pushRay.pop(); // no forward pawn caps
+	
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f - 1)) {
 		pawnMoves.push(b[r + moveDir][f - 1]);
 	}
@@ -263,6 +266,19 @@ function legalColorPawnMovesFrom(c, r, f) {
 		pawnMoves.push(b[r + moveDir][f + 1]);
 	}
 	return pawnMoves.concat(pushRay);
+}
+
+function getForwardColorPawnMovesFrom(c, r, f) {
+	let pushRay;
+	let startRank = startRankByColor[c];
+	let moveDir = pawnDir[c];
+	if (r === startRank) {
+		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 2);
+	} else {
+		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 1);
+	}
+	if (pushRay[pushRay.length - 1].piece) pushRay.pop(); // no forward pawn caps
+	return pushRay;
 }
 
 function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
