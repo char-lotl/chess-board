@@ -165,6 +165,8 @@ function getLegalMoves(square) {
 	legalMoves = getUnpinnedLegalMoves(square, p.color, p.type);
 	// moves are tagged with direction 0-8
 	
+	//console.log(legalMoves);
+	
 	if (pin) {
 		legalMoves = legalMoves.filter(m => {
 			return ((m.direction === pin.direction) || (m.direction === oppositeDir(pin.direction)));
@@ -241,7 +243,6 @@ function legalColorKingMovesFrom(c, r, f) {
 	let legalMoves = allMoves.filter(m => {
 		return !m.destination.isGuardedBy(invertColor(c));
 	});
-	console.log(legalMoves);
 	return legalMoves;
 }
 
@@ -270,12 +271,12 @@ function legalColorPawnMovesFrom(c, r, f) {
 	
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f - 1)) {
 		let dest = b[r + moveDir][f - 1];
-		let dir = directionFromInterval(moveDir, f - 1);
+		let dir = directionFromInterval(moveDir, -1);
 		pawnMoves.push({destination: dest, direction: dir});
 	}
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f + 1)) {
 		let dest = b[r + moveDir][f + 1];
-		let dir = directionFromInterval(moveDir, f + 1);
+		let dir = directionFromInterval(moveDir, 1);
 		pawnMoves.push({destination: dest, direction: dir});
 	}
 	return pawnMoves.concat(pushRay);
@@ -456,7 +457,6 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 		},
 		isGuardedByKing(c) {
 			let vantages = allColorKingMovesFrom(c, this.rank, this.file);
-			console.log(vantages);
 			return vantages.reduce((a, m) => {
 				let s = m.destination;
 				return a || b.hasColorTypePieceOn(c, 'king', s.rank, s.file);
@@ -616,6 +616,7 @@ function resetBoard() {
 		addPieceToRankFile('white', 'pawn', 6, i);
 	});
 	b.resetBoardVariables();
+	b.deselect();
 }
 
 const app = document.getElementById('app');
