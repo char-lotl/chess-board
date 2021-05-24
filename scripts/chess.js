@@ -4,6 +4,8 @@ const rankLabels = [8, 7, 6, 5, 4, 3, 2, 1];
 const fileLabels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const backRank = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
 
+const dirClassifier = [[3, 2, 1], [4, -1, 0], [5, 6, 7]];
+
 let b;
 let knightMoves = [[], [], [], [], [], [], [], []];
 const knightIntervals = [[2, 1], [1, 2], [-1, 2], [-2, 1], [-2, -1], [-1, -2], [1, -2], [2, -1]];
@@ -44,20 +46,34 @@ function invertColor(c) {
 	else return 'white';
 }
 
+function dirTagger(d) {
+	return function (s) {
+		return { destination: s, direction: d };
+	}
+}
+
+function directionFromInterval(ri, fi) {
+	return dirClassifier[ri + 1][fi + 1];
+}
+
+function oppositeDir(d) {
+	return ((d + 4) % 8);
+}
+
 function getPin(square, color) {
 	if (square.piece.type === 'king') return null; // kings can't be pinned!
 	kingDir = [b.kingPosition[color].rank - square.rank,
 			   b.kingPosition[color].file - square.file];
-	let p = { direction: null, dirType: null };
+	let p = { direction: -1 };
 	if (kingDir[0] === 0) {
 		if (kingDir[1] > 0) {
 			if (isColorPinnedFromDir(color, square.rank, square.file, 0, -1)) {
-				p.direction = [0, -1];
+				p.direction = 4;
 				//p.dirType = 'ortho';
 			}
 		} else {
 			if (isColorPinnedFromDir(color, square.rank, square.file, 0, 1)) {
-				p.direction = [0, 1];
+				p.direction = 0;
 				//p.dirType = 'ortho';
 			}
 		}
@@ -65,12 +81,12 @@ function getPin(square, color) {
 	if (kingDir[1] === 0) {
 		if (kingDir[0] > 0) {
 			if (isColorPinnedFromDir(color, square.rank, square.file, -1, 0)) {
-				p.direction = [-1, 0];
+				p.direction = 2;
 				//p.dirType = 'ortho';
 			}
 		} else {
 			if (isColorPinnedFromDir(color, square.rank, square.file, 1, 0)) {
-				p.direction = [1, 0];
+				p.direction = 6;
 				//p.dirType = 'ortho';
 			}
 		}
@@ -78,12 +94,12 @@ function getPin(square, color) {
 	if (kingDir[0] === kingDir[1]) {
 		if (kingDir[0] > 0) {
 			if (isColorPinnedFromDir(color, square.rank, square.file, -1, -1)) {
-				p.direction = [-1, -1];
+				p.direction = 3;
 				//p.dirType = 'diag';
 			}
 		} else {
 			if (isColorPinnedFromDir(color, square.rank, square.file, 1, 1)) {
-				p.direction = [1, 1];
+				p.direction = 7;
 				//p.dirType = 'diag';
 			}
 		}
@@ -91,18 +107,17 @@ function getPin(square, color) {
 	if (kingDir[0] + kingDir[1] === 0) {
 		if (kingDir[0] > 0) {
 			if (isColorPinnedFromDir(color, square.rank, square.file, -1, 1)) {
-				p.direction = [-1, 1];
+				p.direction = 1;
 				//p.dirType = 'diag';
 			}
 		} else {
 			if (isColorPinnedFromDir(color, square.rank, square.file, 1, -1)) {
-				p.direction = [1, -1];
+				p.direction = 5;
 				//p.dirType = 'diag';
 			}
 		}
 	}
-	if (p.direction) {
-		p.dirType = getDirType(p.direction[0], p.direction[1]);
+	if (p.direction !== -1) {
 		return p;
 	}
 	else return null;
@@ -147,27 +162,19 @@ function getLegalMoves(square) {
 	let legalMoves = [];
 	let p = square.piece;
 	let pin = getPin(square, p.color);
-	if (!pin) {
-		legalMoves = getUnpinnedLegalMoves(square, p.color, p.type);
-	} else {
-		if (pieceHasDirType(p.type, pin.dirType)) {
-			let pinDirMoves = colorRayFromIntervalExtent(p.color, square.rank, square.file,
-													pin.direction[0], pin.direction[1]);
-			let kingDirMoves = colorRayFromIntervalExtent(p.color, square.rank, square.file,
-													 -pin.direction[0], -pin.direction[1]);
-			legalMoves = pinDirMoves.concat(kingDirMoves);
-		}
-		if (p.type === 'pawn') {
-			if ((pin.dirType === 'ortho')
-				&& (pin.direction[0] !== 0)) {
-				legalMoves = getForwardColorPawnMovesFrom(p.color, square.rank, square.file);
-			}
-			// need to implement capturing out of pin!
-		}
-		
-		
-		
+	legalMoves = getUnpinnedLegalMoves(square, p.color, p.type);
+	// moves are tagged with direction 0-8
+	
+	if (pin) {
+		legalMoves = legalMoves.filter(m => {
+			return ((m.direction === pin.direction) || (m.direction === oppositeDir(pin.direction)));
+		});
 	}
+	
+	legalMoves = legalMoves.map(m => m.destination);
+	// now we strip the tags off
+	// since we were only using them for pin violation culling
+	
 	// no capturing your own color!
 	return legalMoves.filter(s => {
 		return (!(s.piece) || (s.piece.color !== p.color));
@@ -213,7 +220,7 @@ function legalColorRookMovesFrom(c, r, f) {
 }
 
 function legalKnightMovesFrom(r, f) {
-	return knightMoves[r][f];
+	return knightMoves[r][f].map(dirTagger(-1));
 }
 
 function legalColorBishopMovesFrom(c, r, f) {
@@ -230,22 +237,23 @@ function legalColorQueenMovesFrom(c, r, f) {
 }
 
 function legalColorKingMovesFrom(c, r, f) {
-	let allMoves = allKingMovesFrom(r, f);
-	let legalMoves = allMoves.filter(s => {
-		return !s.isGuardedBy(invertColor(c));
+	let allMoves = allColorKingMovesFrom(c, r, f);
+	let legalMoves = allMoves.filter(m => {
+		return !m.destination.isGuardedBy(invertColor(c));
 	});
+	console.log(legalMoves);
 	return legalMoves;
 }
 
-function allKingMovesFrom(r, f) {
-	let rightStep = rayFromIntervalExtent(r, f, 0, 1, 1);
-	let upRightStep = rayFromIntervalExtent(r, f, -1, 1, 1);
-	let upStep = rayFromIntervalExtent(r, f, -1, 0, 1);
-	let upLeftStep = rayFromIntervalExtent(r, f, -1, -1, 1);
-	let leftStep = rayFromIntervalExtent(r, f, 0, -1, 1);
-	let downLeftStep = rayFromIntervalExtent(r, f, 1, -1, 1);
-	let downStep = rayFromIntervalExtent(r, f, 1, 0, 1);
-	let downRightStep = rayFromIntervalExtent(r, f, 1, 1, 1);
+function allColorKingMovesFrom(c, r, f) {
+	let rightStep = colorRayFromIntervalExtent(c, r, f, 0, 1, 1);
+	let upRightStep = colorRayFromIntervalExtent(c, r, f, -1, 1, 1);
+	let upStep = colorRayFromIntervalExtent(c, r, f, -1, 0, 1);
+	let upLeftStep = colorRayFromIntervalExtent(c, r, f, -1, -1, 1);
+	let leftStep = colorRayFromIntervalExtent(c, r, f, 0, -1, 1);
+	let downLeftStep = colorRayFromIntervalExtent(c, r, f, 1, -1, 1);
+	let downStep = colorRayFromIntervalExtent(c, r, f, 1, 0, 1);
+	let downRightStep = colorRayFromIntervalExtent(c, r, f, 1, 1, 1);
 	
 	let allMoves = rightStep.concat(upRightStep).concat(upStep)
 	.concat(upLeftStep).concat(leftStep).concat(downLeftStep)
@@ -258,12 +266,17 @@ function legalColorPawnMovesFrom(c, r, f) {
 	let pawnMoves = [];
 	let pushRay = getForwardColorPawnMovesFrom(c, r, f);
 	let enemyColor = invertColor(c);
+	let moveDir = pawnDir[c];
 	
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f - 1)) {
-		pawnMoves.push(b[r + moveDir][f - 1]);
+		let dest = b[r + moveDir][f - 1];
+		let dir = directionFromInterval(moveDir, f - 1);
+		pawnMoves.push({destination: dest, direction: dir});
 	}
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f + 1)) {
-		pawnMoves.push(b[r + moveDir][f + 1]);
+		let dest = b[r + moveDir][f + 1];
+		let dir = directionFromInterval(moveDir, f + 1);
+		pawnMoves.push({destination: dest, direction: dir});
 	}
 	return pawnMoves.concat(pushRay);
 }
@@ -277,7 +290,8 @@ function getForwardColorPawnMovesFrom(c, r, f) {
 	} else {
 		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 1);
 	}
-	if (pushRay[pushRay.length - 1].piece) pushRay.pop(); // no forward pawn caps
+	if (pushRay[pushRay.length - 1].destination.piece) pushRay.pop();
+		// no forward pawn caps
 	return pushRay;
 }
 
@@ -301,7 +315,7 @@ function colorRayFromIntervalExtent(c, r, f, ri, fi, ext = 7) {
 	if (i >= 0) {
 		ray = ray.slice(0, i + 1);
 	}
-	return ray;
+	return ray.map(dirTagger(directionFromInterval(ri, fi)));
 	// the logic for not capturing your own pieces is elsewhere
 }
 
@@ -435,13 +449,16 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 		},
 		isGuardedByKnight(c) {
 			let vantages = legalKnightMovesFrom(this.rank, this.file);
-			return vantages.reduce((a, s) => {
+			return vantages.reduce((a, m) => {
+				let s = m.destination;
 				return a || b.hasColorTypePieceOn(c, 'knight', s.rank, s.file);
 			}, false);
 		},
 		isGuardedByKing(c) {
-			let vantages = allKingMovesFrom(this.rank, this.file);
-			return vantages.reduce((a, s) => {
+			let vantages = allColorKingMovesFrom(c, this.rank, this.file);
+			console.log(vantages);
+			return vantages.reduce((a, m) => {
+				let s = m.destination;
 				return a || b.hasColorTypePieceOn(c, 'king', s.rank, s.file);
 			}, false);
 		},
