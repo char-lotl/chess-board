@@ -5,6 +5,8 @@ const fileLabels = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const backRank = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
 
 const dirClassifier = [[3, 2, 1], [4, -1, 0], [5, 6, 7]];
+const rankIntervalFromDir = [0, -1, -1, -1, 0, 1, 1, 1];
+const fileIntervalFromDir = [1, 1, 0, -1, -1, -1, 0, 1];
 
 let b;
 let knightMoves = [[], [], [], [], [], [], [], []];
@@ -60,6 +62,21 @@ function oppositeDir(d) {
 	return ((d + 4) % 8);
 }
 
+function areParallel(d1, d2) {
+	return (d1 >= 0) && (d2 >= 0) && (((d1 - d2 + 8) % 4) == 0);
+	// knight moves can't be parallel to a threat ray
+	// which is what we use this for
+}
+
+function check() {
+	return (b.checks.length > 0);
+}
+
+function doubleCheck() {
+	return (b.checks.length === 2);
+}
+
+// in getPin, color is the color of the king to whom the piece is pinned
 function getPin(square, color) {
 	if (square.piece.type === 'king') return null; // kings can't be pinned!
 	kingDir = [b.kingPosition[color].rank - square.rank,
@@ -138,6 +155,12 @@ function isColorPinnedFromDir(c, r, f, ri, fi) {
 			&& isColorAttackedFromDir(c, r, f, ri, fi));
 }
 
+// color is the color of the side making the discovered check
+function getDiscovery(square, color) {
+	return getPin(square, invertColor(color));
+	// it's the same concept but in reverse
+}
+
 function canTypeAttackFromDir(t, ri, fi) {
 	if (t === 'queen') return true;
 	let dt = getDirType(ri, fi);
@@ -161,26 +184,22 @@ function pieceHasDirType(pieceType, dirType) {
 function getLegalMoves(square) {
 	let legalMoves = [];
 	let p = square.piece;
+	if (doubleCheck() && p.type !== 'king') return [];
+	// if the king is checked by two pieces, only a king-move can stop both checks
+	
 	let pin = getPin(square, p.color);
 	legalMoves = getUnpinnedLegalMoves(square, p.color, p.type);
 	// moves are tagged with direction 0-8
 	
-	//console.log(legalMoves);
-	
 	if (pin) {
-		legalMoves = legalMoves.filter(m => {
-			return ((m.direction === pin.direction) || (m.direction === oppositeDir(pin.direction)));
-		});
+		legalMoves = legalMoves.filter(m => areParallel(m.direction, pin.direction));
 	}
 	
-	legalMoves = legalMoves.map(m => m.destination);
-	// now we strip the tags off
-	// since we were only using them for pin violation culling
+	if (check() && p.type !== 'king') {
+		legalMoves = legalMoves.filter(m => b.checks[0].includes(m.destination));
+	}
 	
-	// no capturing your own color!
-	return legalMoves.filter(s => {
-		return (!(s.piece) || (s.piece.color !== p.color));
-	});
+	return legalMoves;
 }
 
 function getUnpinnedLegalMoves(square, pieceColor, pieceType) {
@@ -208,7 +227,11 @@ function getUnpinnedLegalMoves(square, pieceColor, pieceType) {
 			console.log('Invalid piece type for getting moves.');
 			break;
 	}
-	return legalMoves;
+	// no capturing your own color!
+	return legalMoves.filter(m => {
+		let s = m.destination;
+		return (!(s.piece) || (s.piece.color !== pieceColor));
+	});
 }
 
 
@@ -364,6 +387,7 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 			file: fileIndex,
 			selected: false,
 			highlighted: false,
+			highlightedMoveDirection: null,
 			checked: false,
 			containsPiece: false,
 			pieceColor: '',
@@ -417,17 +441,22 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 		unhighlight() {
 			if (this._model.highlighted) {
 				this._model.highlighted = false;
+				this._model.highlightedMoveDirection = null;
 				this._dom.removeAttribute('highlighted');
 			}
 		},
-		highlight() {
+		highlight(dir) {
 			if (!(this._model.highlighted)) {
 				this._model.highlighted = true;
+				this._model.highlightedMoveDirection = dir;
 				this._dom.setAttribute('highlighted', '');
 			}
 		},
 		get isHighlighted() {
 			return this._model.highlighted;
+		},
+		get direction() {
+			return this._model.highlightedMoveDirection;
 		},
 		isGuardedBy(color) {
 			let gbp = this.isGuardedByPawn(color);
@@ -513,7 +542,8 @@ function makeBoard() {
 			selectedSquare: null,
 			highlightedSquares: [],
 			isWhitesTurn: true,
-			kingPosition: { 'white': null, 'black': null }
+			kingPosition: { 'white': null, 'black': null },
+			outstandingChecks: []
 		},
 		hasColorPieceOn(c, r, f) {
 			return (isInBounds(r, f) && this[r][f].piece && (this[r][f].piece.color === c));
@@ -537,21 +567,62 @@ function makeBoard() {
 			this._model.selectedSquare = s;
 		},
 		deselect() {
-			this.selectedSquare.deselect();
-			this.selectedSquare = null;
+			if (this.selectedSquare) {
+				this.selectedSquare.deselect();
+				this.selectedSquare = null;
+			}
 		},
 		moveSelectedToSquare(s) {
+			this._model.outstandingChecks = [];
+			// if a legal move was made, all outstanding checks must have been resolved
+			
 			let p = this.selectedSquare.piece;
+			
+			// determine whether this yields a discovered check
+			// if it does, add that check to the board model's info
+			let disc = getDiscovery(this.selectedSquare, p.color);
+			if (disc && !areParallel(disc.direction, s.direction)) {
+				this.addColorCheckFromDirection(p.color, disc.direction);
+			}
+			
 			this.selectedSquare.removePiece();
 			s.addPiece(p.color, p.type);
 			if (p.type === 'king') {
 				this._model.kingPosition[p.color] = s;
 			}
+			
+			let kingAttacks = getUnpinnedLegalMoves(s, p.color, p.type).filter(m => {
+				let s2 = m.destination;
+				return (s2.piece && s2.piece.type === 'king');
+			});
+			if (kingAttacks.length > 0) {
+				let ka = kingAttacks[0];
+				if (p.type === 'pawn' || p.type === 'knight') {
+					this.addCheckFromPosition(s); // no threat ray
+				} else {
+					this.addColorCheckFromDirection(p.color, oppositeDir(ka.direction));
+				}
+			}
+			// now ask whether the same piece can capture the king from its current square
+			
 		},
-		highlightSquares(squares) {
-			squares.forEach(s => {
+		addColorCheckFromDirection(c, dir) {
+			let kc = invertColor(c);
+			let kp = this.kingPosition[kc];
+			let dirr = rankIntervalFromDir[dir];
+			let dirf = fileIntervalFromDir[dir];
+			let checkSquares = colorRayFromIntervalExtent(kc, kp.rank, kp.file, dirr, dirf)
+			.map(m => m.destination);
+			this._model.outstandingChecks.push(checkSquares);
+		},
+		addCheckFromPosition(square) {
+			this._model.outstandingChecks.push([square]);
+		},
+		highlightSquares(moves) {
+			moves.forEach(m => {
+				let s = m.destination;
 				this._model.highlightedSquares.push(s);
-				s.highlight();
+				s.highlight(m.direction); // tag the highlighted squares with directional info
 			});
 		},
 		unhighlight() {
@@ -568,6 +639,9 @@ function makeBoard() {
 		},
 		get kingPosition() {
 			return this._model.kingPosition;
+		},
+		get checks() {
+			return this._model.outstandingChecks;
 		},
 		resetBoardVariables() {
 			this._model.isWhitesTurn = true;
