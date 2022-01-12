@@ -392,6 +392,13 @@ function updateCastlingRights(origin, dest, rights) {
 	if (dest.rank === 7 && (dest.file === 4 || dest.file === 7)) rights.white.kingside = false;
 }
 
+function updateEnPassantRights(origin, dest, piece, rights) {
+	rights.file = -1;
+	if (piece.type == 'pawn' && (dest.rank - origin.rank) ** 2 > 1) {
+		rights.file = origin.file;
+	}
+}
+
 function squareClick (clickEvent) {
 	const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
 	if (b.selectedSquare) {
@@ -596,6 +603,7 @@ function makeBoard() {
 			kingPosition: { 'white': null, 'black': null },
 			castlingRights: { 'white': { kingside: true, queenside: true },
 							  'black': { kingside: true, queenside: true } },
+			enPassantRights: { file: -1 },
 			outstandingChecks: []
 		},
 		hasColorPieceOn(c, r, f) {
@@ -634,6 +642,7 @@ function makeBoard() {
 			// if a legal move was made, all outstanding checks must have been resolved
 			
 			updateCastlingRights(o, s, this._model.castlingRights);
+			updateEnPassantRights(o, s, p, this._model.enPassantRights);
 			
 			let isCastling = (s.direction < -1);
 			// directions -2 and -3 are reserved for castling
@@ -739,9 +748,13 @@ function makeBoard() {
 			this._model.castlingRights.black.kingside = true;
 			this._model.castlingRights.black.queenside = true;
 		},
+		resetEnPassantRights() {
+			this._model.enPassantRights.file = -1;
+		},
 		resetBoardVariables() {
 			this.uncheckAll();
 			this.resetCastlingRights();
+			this.resetEnPassantRights();
 			
 			this._model.isWhitesTurn = true;
 			this._model.kingPosition['white'] = this[7][4];
