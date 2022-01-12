@@ -18,6 +18,7 @@ const queenDirs = rookDirs.concat(bishopDirs);
 
 const pawnDir = {'black': 1, 'white': -1};
 const startRankByColor = { 'black': 1, 'white': 6 };
+const colorBackRank = { 'black': 0, 'white': 7 };
 
 function generateKnightMoves () {
 	for (i = 0; i < 8; i++) {
@@ -161,6 +162,23 @@ function getDiscovery(square, color) {
 	// it's the same concept but in reverse
 }
 
+function castlingReady(color, type) {
+	let br = colorBackRank[color];
+	let enemy = invertColor(color);
+	if (type === 'kingside') {
+		return emptyAndUnthreatenedBy(br, 5, enemy)
+		&& emptyAndUnthreatenedBy(br, 6, enemy);
+	} else {
+		return emptyAndUnthreatenedBy(br, 3, enemy)
+		&& emptyAndUnthreatenedBy(br, 2, enemy)
+		&& !b[br][1].piece;
+	}
+}
+
+function emptyAndUnthreatenedBy(r, f, c) {
+	return ((!b[r][f].piece) && !(b[r][f].isGuardedBy(c)));
+}
+
 function canTypeAttackFromDir(t, ri, fi) {
 	if (t === 'queen') return true;
 	let dt = getDirType(ri, fi);
@@ -197,6 +215,15 @@ function getLegalMoves(square) {
 	
 	if (check() && p.type !== 'king') {
 		legalMoves = legalMoves.filter(m => b.checks[0].includes(m.destination));
+	}
+	
+	if (!check() && (p.type === 'king')) {
+		if (b.castlingRights[p.color].kingside && castlingReady(p.color, 'kingside')) {
+			legalMoves.push({destination: b[colorBackRank[p.color]][6], direction: -2 });
+		}
+		if (b.castlingRights[p.color].queenside && castlingReady(p.color, 'queenside')) {
+			legalMoves.push({destination: b[colorBackRank[p.color]][2], direction: -3 });
+		}
 	}
 	
 	return legalMoves;
@@ -353,6 +380,18 @@ function firstUnselectedPieceInDirectionFrom(r, f, ri, fi) {
 	} else return piecesOnRay[0].piece;
 }
 
+function updateCastlingRights(origin, dest, rights) {
+	if (origin.rank === 0 && (origin.file === 0 || origin.file === 4)) rights.black.queenside = false;
+	if (origin.rank === 0 && (origin.file === 4 || origin.file === 7)) rights.black.kingside = false;
+	if (dest.rank === 0 && (dest.file === 0 || dest.file === 4)) rights.black.queenside = false;
+	if (dest.rank === 0 && (dest.file === 4 || dest.file === 7)) rights.black.kingside = false;
+	
+	if (origin.rank === 7 && (origin.file === 0 || origin.file === 4)) rights.white.queenside = false;
+	if (origin.rank === 7 && (origin.file === 4 || origin.file === 7)) rights.white.kingside = false;
+	if (dest.rank === 7 && (dest.file === 0 || dest.file === 4)) rights.white.queenside = false;
+	if (dest.rank === 7 && (dest.file === 4 || dest.file === 7)) rights.white.kingside = false;
+}
+
 function squareClick (clickEvent) {
 	const clickedSquare = b[clickEvent.currentTarget.rank][clickEvent.currentTarget.file];
 	if (b.selectedSquare) {
@@ -455,6 +494,18 @@ function makeSquare(rankIndex, fileLabel, fileIndex) {
 		get isHighlighted() {
 			return this._model.highlighted;
 		},
+		uncheck() {
+			if (this._model.checked) {
+				this._model.checked = false;
+				this._dom.removeAttribute('checked');
+			}
+		},
+		check() {
+			if (!(this._model.checked)) {
+				this._model.checked = true;
+				this._dom.setAttribute('checked', '');
+			}
+		},
 		get direction() {
 			return this._model.highlightedMoveDirection;
 		},
@@ -543,6 +594,8 @@ function makeBoard() {
 			highlightedSquares: [],
 			isWhitesTurn: true,
 			kingPosition: { 'white': null, 'black': null },
+			castlingRights: { 'white': { kingside: true, queenside: true },
+							  'black': { kingside: true, queenside: true } },
 			outstandingChecks: []
 		},
 		hasColorPieceOn(c, r, f) {
@@ -573,22 +626,46 @@ function makeBoard() {
 			}
 		},
 		moveSelectedToSquare(s) {
+			let o = this.selectedSquare; // o for 'origin'
+			let p = o.piece;
+			
 			this._model.outstandingChecks = [];
+			this.kingPosition[p.color].uncheck();
 			// if a legal move was made, all outstanding checks must have been resolved
 			
-			let p = this.selectedSquare.piece;
+			updateCastlingRights(o, s, this._model.castlingRights);
+			
+			let isCastling = (s.direction < -1);
+			// directions -2 and -3 are reserved for castling
 			
 			// determine whether this yields a discovered check
 			// if it does, add that check to the board model's info
-			let disc = getDiscovery(this.selectedSquare, p.color);
-			if (disc && !areParallel(disc.direction, s.direction)) {
+			let disc = getDiscovery(o, p.color);
+			if (disc && !isCastling && !areParallel(disc.direction, s.direction)) {
+				// don't look for discovered check when castling.
+				// instead, look for rook checks
 				this.addColorCheckFromDirection(p.color, disc.direction);
 			}
 			
-			this.selectedSquare.removePiece();
+			o.removePiece();
 			s.addPiece(p.color, p.type);
+			
+			if (isCastling) {
+				this[o.rank][(s.direction + 3) * 7].removePiece(); // rook moves from corner...
+				this[o.rank][(s.direction * 2) + 9].addPiece(p.color, 'rook');
+			}
+			
 			if (p.type === 'king') {
+				// hack to check if the current move is castling without
+				// carrying that information over explicitly
 				this._model.kingPosition[p.color] = s;
+			}
+			
+			// if we castled, the piece we have to look for delivering checks
+			// is the rook, not the king!
+			if (isCastling) {
+				s = this[o.rank][(s.direction * 2) + 9];
+				p = s.piece;
 			}
 			
 			let kingAttacks = getUnpinnedLegalMoves(s, p.color, p.type).filter(m => {
@@ -603,7 +680,11 @@ function makeBoard() {
 					this.addColorCheckFromDirection(p.color, oppositeDir(ka.direction));
 				}
 			}
-			// now ask whether the same piece can capture the king from its current square
+			
+			if (check()) {
+				this.kingPosition[invertColor(p.color)].check();
+			}
+			
 			
 		},
 		addColorCheckFromDirection(c, dir) {
@@ -643,10 +724,30 @@ function makeBoard() {
 		get checks() {
 			return this._model.outstandingChecks;
 		},
+		uncheckAll() {
+			if (this._model.kingPosition['white']) {
+				this._model.kingPosition['white'].uncheck();
+				this._model.kingPosition['black'].uncheck();
+			}
+		},
+		get castlingRights() {
+			return this._model.castlingRights;
+		},
+		resetCastlingRights() {
+			this._model.castlingRights.white.kingside = true;
+			this._model.castlingRights.white.queenside = true;
+			this._model.castlingRights.black.kingside = true;
+			this._model.castlingRights.black.queenside = true;
+		},
 		resetBoardVariables() {
+			this.uncheckAll();
+			this.resetCastlingRights();
+			
 			this._model.isWhitesTurn = true;
 			this._model.kingPosition['white'] = this[7][4];
 			this._model.kingPosition['black'] = this[0][4];
+			this._model.outstandingChecks = [];
+			
 		}
 	};
 	let boardRanks = rankLabels.map((rankLabel, rankIndex) => {

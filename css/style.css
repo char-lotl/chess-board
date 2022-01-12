@@ -59,6 +59,14 @@ body {
 	background-color: #E0E0F0;
 }
 
+.square.light[checked] {
+	background-color: #E09090;
+}
+
+.square.light[selected][checked] {
+	background-color: #F4A4A4;
+}
+
 .square.dark {
 	background-color: #909080;
 }
@@ -69,6 +77,14 @@ body {
 
 .square.dark[highlighted] {
 	background-color: #9898A8;
+}
+
+.square.dark[checked] {
+	background-color: #A87060;
+}
+
+.square.dark[selected][checked] {
+	background-color: #C89080;
 }
 
 [piecetype] {
