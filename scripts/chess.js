@@ -263,10 +263,10 @@ function getUnpinnedLegalMoves(square, pieceColor, pieceType) {
 
 
 function legalColorRookMovesFrom(c, r, f) {
-	let rightRay = colorRayFromIntervalExtent(c, r, f, 0, 1);
-	let upRay = colorRayFromIntervalExtent(c, r, f, -1, 0);
-	let leftRay = colorRayFromIntervalExtent(c, r, f, 0, -1);
-	let downRay = colorRayFromIntervalExtent(c, r, f, 1, 0);
+	let rightRay = collisionRayFromIntervalExtent(r, f, 0, 1);
+	let upRay = collisionRayFromIntervalExtent(r, f, -1, 0);
+	let leftRay = collisionRayFromIntervalExtent(r, f, 0, -1);
+	let downRay = collisionRayFromIntervalExtent(r, f, 1, 0);
 	
 	return rightRay.concat(upRay).concat(leftRay).concat(downRay);
 }
@@ -276,10 +276,10 @@ function legalKnightMovesFrom(r, f) {
 }
 
 function legalColorBishopMovesFrom(c, r, f) {
-	let upRightRay = colorRayFromIntervalExtent(c, r, f, -1, 1);
-	let upLeftRay = colorRayFromIntervalExtent(c, r, f, -1, -1);
-	let downLeftRay = colorRayFromIntervalExtent(c, r, f, 1, -1);
-	let downRightRay = colorRayFromIntervalExtent(c, r, f, 1, 1);
+	let upRightRay = collisionRayFromIntervalExtent(r, f, -1, 1);
+	let upLeftRay = collisionRayFromIntervalExtent(r, f, -1, -1);
+	let downLeftRay = collisionRayFromIntervalExtent(r, f, 1, -1);
+	let downRightRay = collisionRayFromIntervalExtent(r, f, 1, 1);
 	
 	return upRightRay.concat(upLeftRay).concat(downLeftRay).concat(downRightRay);
 }
@@ -297,14 +297,14 @@ function legalColorKingMovesFrom(c, r, f) {
 }
 
 function allColorKingMovesFrom(c, r, f) {
-	let rightStep = colorRayFromIntervalExtent(c, r, f, 0, 1, 1);
-	let upRightStep = colorRayFromIntervalExtent(c, r, f, -1, 1, 1);
-	let upStep = colorRayFromIntervalExtent(c, r, f, -1, 0, 1);
-	let upLeftStep = colorRayFromIntervalExtent(c, r, f, -1, -1, 1);
-	let leftStep = colorRayFromIntervalExtent(c, r, f, 0, -1, 1);
-	let downLeftStep = colorRayFromIntervalExtent(c, r, f, 1, -1, 1);
-	let downStep = colorRayFromIntervalExtent(c, r, f, 1, 0, 1);
-	let downRightStep = colorRayFromIntervalExtent(c, r, f, 1, 1, 1);
+	let rightStep = collisionRayFromIntervalExtent(r, f, 0, 1, 1);
+	let upRightStep = collisionRayFromIntervalExtent(r, f, -1, 1, 1);
+	let upStep = collisionRayFromIntervalExtent(r, f, -1, 0, 1);
+	let upLeftStep = collisionRayFromIntervalExtent(r, f, -1, -1, 1);
+	let leftStep = collisionRayFromIntervalExtent(r, f, 0, -1, 1);
+	let downLeftStep = collisionRayFromIntervalExtent(r, f, 1, -1, 1);
+	let downStep = collisionRayFromIntervalExtent(r, f, 1, 0, 1);
+	let downRightStep = collisionRayFromIntervalExtent(r, f, 1, 1, 1);
 	
 	let allMoves = rightStep.concat(upRightStep).concat(upStep)
 	.concat(upLeftStep).concat(leftStep).concat(downLeftStep)
@@ -337,9 +337,9 @@ function getForwardColorPawnMovesFrom(c, r, f) {
 	let startRank = startRankByColor[c];
 	let moveDir = pawnDir[c];
 	if (r === startRank) {
-		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 2);
+		pushRay = collisionRayFromIntervalExtent(r, f, moveDir, 0, 2);
 	} else {
-		pushRay = colorRayFromIntervalExtent(c, r, f, moveDir, 0, 1);
+		pushRay = collisionRayFromIntervalExtent(r, f, moveDir, 0, 1);
 	}
 	if (pushRay[pushRay.length - 1].destination.piece) pushRay.pop();
 		// no forward pawn caps
@@ -360,7 +360,7 @@ function rayFromIntervalExtent(r, f, ri, fi, ext = 7) {
 	return ray;
 }
 
-function colorRayFromIntervalExtent(c, r, f, ri, fi, ext = 7) {
+function collisionRayFromIntervalExtent(r, f, ri, fi, ext = 7) {
 	let ray = rayFromIntervalExtent(r, f, ri, fi, ext);
 	let i = ray.findIndex(s => !!(s.piece)); // returns -1 if not found!
 	if (i >= 0) {
@@ -692,7 +692,7 @@ function makeBoard() {
 			let kp = this.kingPosition[kc];
 			let dirr = rankIntervalFromDir[dir];
 			let dirf = fileIntervalFromDir[dir];
-			let checkSquares = colorRayFromIntervalExtent(kc, kp.rank, kp.file, dirr, dirf)
+			let checkSquares = collisionRayFromIntervalExtent(kp.rank, kp.file, dirr, dirf)
 			.map(m => m.destination);
 			this._model.outstandingChecks.push(checkSquares);
 		},
