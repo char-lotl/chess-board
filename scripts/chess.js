@@ -141,6 +141,36 @@ function getPin(square, color) {
 	else return null;
 }
 
+function epPinned(square, color, epFile) {
+	if (epFile < 0) return false;
+	let epDir = epFile - square.file;
+	kingDir = [b.kingPosition[color].rank - square.rank,
+			   b.kingPosition[color].file - square.file];
+	if (kingDir[0] !== 0) return false;
+	
+	let r = square.rank;
+	let f = square.file;
+	
+	if (kingDir[1] > 0) {
+		if (epDir > 0) {
+			return (isColorKingFirstInDirFrom(color, r, f + 1, 0, 1)
+					&& isColorAttackedFromDir(color, r, f, 0, -1));
+		} else {
+			return (isColorKingFirstInDirFrom(color, r, f, 0, 1)
+					&& isColorAttackedFromDir(color, r, f - 1, 0, -1));
+		}
+	} else {
+		if (epDir > 0) {
+			return (isColorKingFirstInDirFrom(color, r, f, 0, -1)
+					&& isColorAttackedFromDir(color, r, f + 1, 0, 1));
+		} else {
+			return (isColorKingFirstInDirFrom(color, r, f - 1, 0, -1)
+					&& isColorAttackedFromDir(color, r, f, 0, 1));
+		}
+	}
+	
+}
+
 function isColorKingFirstInDirFrom(c, r, f, ri, fi) {
 	let p = firstUnselectedPieceInDirectionFrom(r, f, ri, fi);
 	return (!!p && (p.type === 'king') && (p.color === c));
@@ -318,13 +348,24 @@ function legalColorPawnMovesFrom(c, r, f) {
 	let pushRay = getForwardColorPawnMovesFrom(c, r, f);
 	let enemyColor = invertColor(c);
 	let moveDir = pawnDir[c];
+	let epRank = startRankByColor[c] + 3 * pawnDir[c];
 	
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f - 1)) {
 		let dest = b[r + moveDir][f - 1];
 		let dir = directionFromInterval(moveDir, -1);
 		pawnMoves.push({destination: dest, direction: dir});
 	}
+	if (r === epRank && b.enPassantRights.file === f - 1 && !epPinned(b[r][f], c, f - 1)) {
+		let dest = b[r + moveDir][f - 1];
+		let dir = directionFromInterval(moveDir, -1);
+		pawnMoves.push({destination: dest, direction: dir});
+	}
 	if (b.hasColorPieceOn(enemyColor, r + moveDir, f + 1)) {
+		let dest = b[r + moveDir][f + 1];
+		let dir = directionFromInterval(moveDir, 1);
+		pawnMoves.push({destination: dest, direction: dir});
+	}
+	if (r === epRank && b.enPassantRights.file === f + 1 && !epPinned(b[r][f], c, f + 1)) {
 		let dest = b[r + moveDir][f + 1];
 		let dir = directionFromInterval(moveDir, 1);
 		pawnMoves.push({destination: dest, direction: dir});
@@ -647,6 +688,18 @@ function makeBoard() {
 			let isCastling = (s.direction < -1);
 			// directions -2 and -3 are reserved for castling
 			
+			let enPassant = (p.type === 'pawn' && !areParallel(s.direction, 2) && s.piece === null);
+			// a move into an empty square by a pawn moving not moving directly ahead is en passant.
+			
+			if (enPassant) {
+				let epSquare = this[o.rank][s.file];
+				let epDisc = getDiscovery(epSquare, p.color);
+				if (epDisc && !areParallel(epDisc.direction, 2)) {
+					this.addColorCheckFromDirection(p.color, epDisc.direction);
+				}
+				epSquare.removePiece();
+			}
+			
 			// determine whether this yields a discovered check
 			// if it does, add that check to the board model's info
 			let disc = getDiscovery(o, p.color);
@@ -655,6 +708,8 @@ function makeBoard() {
 				// instead, look for rook checks
 				this.addColorCheckFromDirection(p.color, disc.direction);
 			}
+			
+			
 			
 			o.removePiece();
 			s.addPiece(p.color, p.type);
@@ -665,10 +720,9 @@ function makeBoard() {
 			}
 			
 			if (p.type === 'king') {
-				// hack to check if the current move is castling without
-				// carrying that information over explicitly
 				this._model.kingPosition[p.color] = s;
 			}
+			
 			
 			// if we castled, the piece we have to look for delivering checks
 			// is the rook, not the king!
@@ -747,6 +801,9 @@ function makeBoard() {
 			this._model.castlingRights.white.queenside = true;
 			this._model.castlingRights.black.kingside = true;
 			this._model.castlingRights.black.queenside = true;
+		},
+		get enPassantRights() {
+			return this._model.enPassantRights;
 		},
 		resetEnPassantRights() {
 			this._model.enPassantRights.file = -1;
